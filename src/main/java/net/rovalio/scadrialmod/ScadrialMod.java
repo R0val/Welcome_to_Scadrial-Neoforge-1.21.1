@@ -10,6 +10,7 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.rovalio.scadrialmod.origin.ScadrialOriginInitializer;
 import net.rovalio.scadrialmod.registry.ScadrialOrigins;
 import net.rovalio.scadrialmod.registry.ScadrialPlanets;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ public final class ScadrialMod {
 
         ScadrialPlanets.register(modEventBus);
         ScadrialOrigins.register(modEventBus);
+
+        ScadrialOriginInitializer.register();
 
     }
 
