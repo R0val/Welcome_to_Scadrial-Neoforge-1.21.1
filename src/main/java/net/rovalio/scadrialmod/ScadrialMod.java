@@ -2,14 +2,7 @@ package net.rovalio.scadrialmod;
 
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.rovalio.scadrialmod.origin.ScadrialOriginInitializer;
 import net.rovalio.scadrialmod.registry.ScadrialOrigins;
 import net.rovalio.scadrialmod.registry.ScadrialPlanets;
@@ -29,12 +22,6 @@ public final class ScadrialMod {
         ScadrialOrigins.register(modEventBus);
 
         ScadrialOriginInitializer.register();
-
-    }
-
-    // You can use SubscribeEvent and let the Event Bus discover methods to call
-    @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event) {
 
     }
 }
