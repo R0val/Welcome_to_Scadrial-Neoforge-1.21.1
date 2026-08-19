@@ -2,8 +2,10 @@ package net.rovalio.scadrialmod.origin;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.rovalio.CosmereAPI.item.custom.TornPagesItem;
+import net.rovalio.CosmereAPI.onboarding.OnboardingResult;
 import net.rovalio.CosmereAPI.onboarding.OriginInitializationRegistry;
 import net.rovalio.scadrialmod.knowledge.ScadrialStartingKnowledge;
 import net.rovalio.scadrialmod.registry.ScadrialOrigins;
@@ -16,9 +18,7 @@ public final class ScadrialOriginInitializer {
     private ScadrialOriginInitializer() {
     }
 
-    //register Origin Initialization
     public static void register() {
-
         OriginInitializationRegistry.register(
                 ScadrialOrigins.NOBLE.getId(),
                 ScadrialOriginInitializer::initialize
@@ -35,51 +35,89 @@ public final class ScadrialOriginInitializer {
         );
     }
 
-    //Initializes Scadrial origins
-    private static boolean initialize(
+    private static OnboardingResult initialize(
             ServerPlayer player,
             ResourceLocation planetId,
             ResourceLocation originId
     ) {
+        if (player == null
+                || planetId == null
+                || originId == null) {
 
-        //Validates Scadrial as a planet
-        if (!planetId.equals(
-                ScadrialPlanets.SCADRIAL.getId()
-        )) {
-            return false;
+            return OnboardingResult.INVALID_REQUEST;
         }
 
-        //Gets starting knowledge
+        if (!ScadrialPlanets.SCADRIAL
+                .getId()
+                .equals(planetId)) {
+
+            return OnboardingResult.INITIALIZATION_FAILED;
+        }
+
+        if (!isSupportedOrigin(originId)) {
+            return OnboardingResult.UNKNOWN_ORIGIN;
+        }
+
         List<ResourceLocation> startingKnowledge =
                 ScadrialStartingKnowledge
                         .getForOrigin(originId);
 
-        if (startingKnowledge.isEmpty()) {
-            return false;
+        if (startingKnowledge == null
+                || startingKnowledge.isEmpty()) {
+
+            return OnboardingResult.INITIALIZATION_FAILED;
         }
 
-        //Creates tornPages with origin entries
         ItemStack tornPages =
                 TornPagesItem.create(
                         planetId,
                         startingKnowledge
                 );
 
-
-        //Gives torn pages to player
-        boolean added =
-                player.getInventory().add(
-                        tornPages
-                );
-
-        if (!added) {
-
-            player.drop(
-                    tornPages,
-                    false
-            );
+        if (tornPages.isEmpty()) {
+            return OnboardingResult.REWARD_DELIVERY_FAILED;
         }
 
-        return true;
+        return deliverTornPages(
+                player,
+                tornPages
+        );
+    }
+
+    private static boolean isSupportedOrigin(
+            ResourceLocation originId
+    ) {
+        return ScadrialOrigins.NOBLE
+                .getId()
+                .equals(originId)
+                || ScadrialOrigins.TERRIS
+                .getId()
+                .equals(originId)
+                || ScadrialOrigins.SKAA
+                .getId()
+                .equals(originId);
+    }
+
+    private static OnboardingResult deliverTornPages(
+            ServerPlayer player,
+            ItemStack tornPages
+    ) {
+        player.getInventory().add(
+                tornPages
+        );
+
+        if (tornPages.isEmpty()) {
+            return OnboardingResult.SUCCESS;
+        }
+
+        ItemEntity droppedPages =
+                player.drop(
+                        tornPages,
+                        false
+                );
+
+        return droppedPages != null
+                ? OnboardingResult.SUCCESS
+                : OnboardingResult.REWARD_DELIVERY_FAILED;
     }
 }
