@@ -4,8 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.rovalio.scadrialmod.origin.ScadrialOriginInitializer;
-import net.rovalio.scadrialmod.registry.ScadrialOrigins;
-import net.rovalio.scadrialmod.registry.ScadrialPlanets;
+import net.rovalio.scadrialmod.registry.*;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -20,6 +19,10 @@ public final class ScadrialMod {
 
         ScadrialPlanets.register(modEventBus);
         ScadrialOrigins.register(modEventBus);
+        ScadrialShards.register(modEventBus);
+        ScadrialInvestedArts.register(modEventBus);
+
+        ScadrialOriginConnections.register();
 
         ScadrialOriginInitializer.register();
 
