@@ -7,7 +7,9 @@ import net.minecraft.world.item.ItemStack;
 import net.rovalio.CosmereAPI.item.custom.TornPagesItem;
 import net.rovalio.CosmereAPI.onboarding.OnboardingResult;
 import net.rovalio.CosmereAPI.onboarding.OriginInitializationRegistry;
+import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.knowledge.ScadrialStartingKnowledge;
+import net.rovalio.scadrialmod.power.ScadrialPowerAssigner;
 import net.rovalio.scadrialmod.registry.ScadrialOrigins;
 import net.rovalio.scadrialmod.registry.ScadrialPlanets;
 
@@ -68,6 +70,10 @@ public final class ScadrialOriginInitializer {
             return OnboardingResult.INITIALIZATION_FAILED;
         }
 
+        /*
+         * Validate the onboarding reward before
+         * modifying the player's power data.
+         */
         ItemStack tornPages =
                 TornPagesItem.create(
                         planetId,
@@ -76,6 +82,31 @@ public final class ScadrialOriginInitializer {
 
         if (tornPages.isEmpty()) {
             return OnboardingResult.REWARD_DELIVERY_FAILED;
+        }
+
+        try {
+            /*
+             * A completed assignment returns false
+             * without rolling powers again.
+             */
+            ScadrialPowerAssigner
+                    .assignInitialPowers(
+                            player,
+                            originId
+                    );
+
+        } catch (RuntimeException exception) {
+
+            ScadrialMod.LOGGER.error(
+                    "Failed to assign initial "
+                            + "Scadrian powers to player {} "
+                            + "for origin {}",
+                    player.getUUID(),
+                    originId,
+                    exception
+            );
+
+            return OnboardingResult.INITIALIZATION_FAILED;
         }
 
         return deliverTornPages(
