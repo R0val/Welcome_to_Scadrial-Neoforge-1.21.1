@@ -42,7 +42,7 @@ final class ScadrialPowerDisplay {
         sendLine(
                 source,
                 Component.literal(
-                                "------ SCADRIAL POWERS: "
+                                "------"
                         )
                         .withStyle(
                                 ChatFormatting.DARK_BLUE
@@ -50,7 +50,7 @@ final class ScadrialPowerDisplay {
                         .append(
                                 Component.literal("SCADRIAL POWERS: ")
                                         .withStyle(
-                                              ChatFormatting.WHITE
+                                              ChatFormatting.GOLD
                                         )
                         )
                         .append(
@@ -58,7 +58,7 @@ final class ScadrialPowerDisplay {
                                                 player.getScoreboardName()
                                         )
                                         .withStyle(
-                                                ChatFormatting.GOLD
+                                                ChatFormatting.WHITE
                                         )
                         )
                         .append(
@@ -184,20 +184,16 @@ final class ScadrialPowerDisplay {
     private static Component createAllomancyDescription(
             ScadrialPlayerData data
     ) {
-        return switch (data.getAllomanticProfile()) {
+        Component description = switch (data.getAllomanticProfile()) {
 
             case NONE ->
                     Component.literal("None")
-                            .withStyle(
-                                    ChatFormatting.DARK_GRAY
-                            );
+                            .withStyle(ChatFormatting.DARK_GRAY);
 
             case FULL ->
                     appendSnappingState(
                             Component.literal("Mistborn")
-                                    .withStyle(
-                                            ChatFormatting.AQUA
-                                    ),
+                                    .withStyle(ChatFormatting.AQUA),
                             data
                     );
 
@@ -215,13 +211,30 @@ final class ScadrialPowerDisplay {
                         createMetalDescription(
                                 metal.getAllomanticTitle(),
                                 getAllomanticColor(metal),
-                                capitalizeMetal(metal)
-                                        + " Misting"
+                                capitalizeMetal(metal) + " Misting"
                         ),
                         data
                 );
             }
         };
+
+        if (!data.hasAllomancy()) {
+            return description;
+        }
+
+        String strengthText = data.isAllomancyStrengthInitialized()
+                ? Double.toString(data.getAllomancyStrength())
+                : "Pending";
+
+        return description.copy()
+                .append(
+                        Component.literal(" | Strength: ")
+                                .withStyle(ChatFormatting.GRAY)
+                )
+                .append(
+                        Component.literal(strengthText)
+                                .withStyle(ChatFormatting.GOLD)
+                );
     }
 
     private static Component createFeruchemyDescription(
@@ -396,7 +409,7 @@ final class ScadrialPowerDisplay {
             case CHROMIUM, NICROSIL ->
                     ChatFormatting.DARK_GRAY;
 
-            case ALUMINUM, DURALUMIN ->
+            case ALUMINIUM, DURALUMIN ->
                     ChatFormatting.GRAY;
 
             case CADMIUM, BENDALLOY ->
@@ -404,9 +417,6 @@ final class ScadrialPowerDisplay {
 
             case GOLD, ELECTRUM ->
                     ChatFormatting.GOLD;
-
-            case ATIUM ->
-                    ChatFormatting.WHITE;
         };
     }
 
@@ -434,7 +444,7 @@ final class ScadrialPowerDisplay {
             case CHROMIUM, NICROSIL ->
                     ChatFormatting.DARK_GRAY;
 
-            case ALUMINUM, DURALUMIN ->
+            case ALUMINIUM, DURALUMIN ->
                     ChatFormatting.GRAY;
 
             case CADMIUM, BENDALLOY ->
@@ -442,9 +452,6 @@ final class ScadrialPowerDisplay {
 
             case GOLD, ELECTRUM ->
                     ChatFormatting.GOLD;
-
-            case ATIUM ->
-                    ChatFormatting.WHITE;
         };
     }
 

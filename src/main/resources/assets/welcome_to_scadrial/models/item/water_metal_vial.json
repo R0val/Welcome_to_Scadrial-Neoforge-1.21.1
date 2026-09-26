@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "welcome_to_scadrial:item/water_metal_vial"
+  }
+}

@@ -11,7 +11,7 @@ import java.util.Objects;
 
 final class InvestedArtConnectionManager {
 
-    /*Aún faltan por añadir Armonía y a lo mejor Discordia en era 3
+    /* Aún faltan por añadir Armonía y a lo mejor Discordia en era 3
      * Por favor Sando, haz que Kelsier sea Discordia.
      * En verda, lo guapo que está poder escribir un rato en español
      */
@@ -67,49 +67,20 @@ final class InvestedArtConnectionManager {
             SpiritwebData spiritweb
     ) {
         switch (data.getAllomanticProfile()) {
-
             case NONE -> {
             }
 
-            case FULL ->
-                    ensureMinimumShardConnection(
-                            spiritweb,
-                            ScadrialShards.PRESERVATION
-                                    .getId(),
-                            MISTBORN_PRESERVATION_CONNECTION
-                    );
+            case SINGLE -> ensureMinimumShardConnection(
+                    spiritweb,
+                    ScadrialShards.PRESERVATION.getId(),
+                    MISTING_SHARD_CONNECTION
+            );
 
-            case SINGLE -> {
-                MetalType metal =
-                        data.getAllomanticMetal()
-                                .orElseThrow(() ->
-                                        new IllegalStateException(
-                                                "A Misting profile "
-                                                        + "requires a metal"
-                                        )
-                                );
-
-                ResourceLocation sourceShard =
-                        switch (
-                                metal.getAllomanticSource()
-                                ) {
-                            case PRESERVATION ->
-                                    ScadrialShards
-                                            .PRESERVATION
-                                            .getId();
-
-                            case RUIN ->
-                                    ScadrialShards
-                                            .RUIN
-                                            .getId();
-                        };
-
-                ensureMinimumShardConnection(
-                        spiritweb,
-                        sourceShard,
-                        MISTING_SHARD_CONNECTION
-                );
-            }
+            case FULL -> ensureMinimumShardConnection(
+                    spiritweb,
+                    ScadrialShards.PRESERVATION.getId(),
+                    MISTBORN_PRESERVATION_CONNECTION
+            );
         }
     }
 
@@ -119,8 +90,7 @@ final class InvestedArtConnectionManager {
     ) {
         switch (data.getFeruchemicalProfile()) {
 
-            case NONE -> {
-            }
+            case NONE -> {}
 
             case SINGLE -> {
                 ensureMinimumShardConnection(

@@ -8,21 +8,31 @@ import net.rovalio.scadrialmod.player.ScadrialPlayerData;
 import net.rovalio.scadrialmod.player.ScadrialPlayerData.PowerProfile;
 import net.rovalio.scadrialmod.registry.ScadrialOrigins;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 public final class ScadrialPowerAssigner {
 
     /*
-     * 4096 = 16³. (Soy un genio de las matemáticas
+     * 4096 = 16³.
      *
-     * Every probability is represented as an integer weight over this common scale.
+     * Every probability is represented as an
+     * integer weight over this common scale.
      */
     private static final int
             PROBABILITY_SCALE = 4_096;
 
-    ///Noble distribution.
+    /*
+     * Temporary strength used during Allomancy 0.
+     *
+     * It represents the Elend-level reference used
+     * to calibrate the first physical mechanics.
+     */
+    private static final double
+            TEST_ALLOMANCY_STRENGTH = 16.0;
+
+    // Noble distribution.
+
     private static final int
             NOBLE_MISTING_WEIGHT = 3_072;
 
@@ -32,22 +42,7 @@ public final class ScadrialPowerAssigner {
     private static final int
             NOBLE_FERRING_WEIGHT = 64;
 
-    ///Skaa distribution.
-
-    /*
-     * Esto seguramente haya que balancearlo porque aunque la prob de los skaa de tener poderes es 50/50
-     * hay casos muy extraños. Un Fullborn tiene prob de +- 0,02%
-     *
-     * ¿Debería balancearlo?
-     *
-     * Como límite, la probabilidad de obtener poderes de un skaa no debería pasar el 64%
-     * Si, de nuevo referenciando al número 16. Los cálculos son en base 16.
-     *
-     * Si Mistborn es 1/16 Misting y Ferring 1/16 Feruchemist
-     * ¿Fullborn 1/16 twinborn?
-     *
-     * Hay que rehacer estos calculos, creo que he calculado mal porcentajes
-     */
+    // Skaa distribution.
 
     private static final int
             SKAA_MISTING_WEIGHT = 1_024;
@@ -67,7 +62,8 @@ public final class ScadrialPowerAssigner {
     private static final int
             SKAA_FULLBORN_WEIGHT = 8;
 
-    ///Terris distribution.
+    // Terris distribution.
+
     private static final int
             TERRIS_FERRING_WEIGHT = 3_072;
 
@@ -77,39 +73,9 @@ public final class ScadrialPowerAssigner {
     private static final int
             TERRIS_MISTING_WEIGHT = 64;
 
-    /*
-     * One in 256 ordinary Misting results receives a special metal.
-     * 16 / 4096 = 1 / 256.
-     */
-
-    /*
-     * En verdad tendría que revisar la teoría esa de que los alomantes de atium son en verdad alomantes
-     * de electrum. No sé si Sanderson llegó a confirmar algo.
-     *
-     * ¿Alomantes de oro deberían poder quemar malatium?
-     */
-    private static final int
-            SPECIAL_MISTING_METAL_WEIGHT = 16;
-
     private static final List<MetalType>
             STANDARD_METALS =
-            Arrays.stream(MetalType.values())
-
-                    .filter(
-                            MetalType::isStandardMetal
-                    )
-
-                    .toList();
-
-    private static final List<MetalType>
-            SPECIAL_METALS =
-            Arrays.stream(MetalType.values())
-
-                    .filter(metal ->
-                            !metal.isStandardMetal()
-                    )
-
-                    .toList();
+            List.of(MetalType.values());
 
     private ScadrialPowerAssigner() {
     }
@@ -128,15 +94,17 @@ public final class ScadrialPowerAssigner {
             ResourceLocation originId
     ) {
         return originId != null
-                && (originId.equals(
-                ScadrialOrigins.NOBLE.getId()
-        )
-                || originId.equals(
-                ScadrialOrigins.SKAA.getId()
-        )
-                || originId.equals(
-                ScadrialOrigins.TERRIS.getId()
-        ));
+                && (
+                originId.equals(
+                        ScadrialOrigins.NOBLE.getId()
+                )
+                        || originId.equals(
+                        ScadrialOrigins.SKAA.getId()
+                )
+                        || originId.equals(
+                        ScadrialOrigins.TERRIS.getId()
+                )
+        );
     }
 
     public static boolean assignInitialPowers(
@@ -153,7 +121,10 @@ public final class ScadrialPowerAssigner {
         ScadrialPlayerData data =
                 ScadrialAttachments.get(player);
 
-        // Prevents rerolling powers through login, death or repeated initialization.
+        /*
+         * Prevents rerolling powers through login,
+         * death or repeated initialization.
+         */
         if (data.isPowerAssignmentComplete()) {
             return false;
         }
@@ -169,6 +140,7 @@ public final class ScadrialPowerAssigner {
 
         applyOutcome(
                 player,
+                originId,
                 random,
                 outcome
         );
@@ -198,6 +170,7 @@ public final class ScadrialPowerAssigner {
 
         applyOutcome(
                 player,
+                originId,
                 random,
                 outcome
         );
@@ -370,6 +343,7 @@ public final class ScadrialPowerAssigner {
 
     private static void applyOutcome(
             ServerPlayer player,
+            ResourceLocation originId,
             RandomSource random,
             AssignmentOutcome outcome
     ) {
@@ -393,7 +367,7 @@ public final class ScadrialPowerAssigner {
                         PowerProfile.SINGLE;
 
                 allomanticMetal =
-                        selectMistingMetal(random);
+                        selectStandardMetal(random);
             }
 
             case MISTBORN ->
@@ -419,10 +393,6 @@ public final class ScadrialPowerAssigner {
                 feruchemicalProfile =
                         PowerProfile.SINGLE;
 
-                /*
-                 * Natural Twinborn generated here use
-                 * only the standard sixteen metals.
-                 */
                 allomanticMetal =
                         selectStandardMetal(random);
 
@@ -439,34 +409,64 @@ public final class ScadrialPowerAssigner {
             }
         }
 
-        //Onboarding and rerolls assign latent potential. They never perform the Snapping itself.
+        double allomancyStrength =
+                rollAllomancyStrength(
+                        originId,
+                        random,
+                        allomanticProfile
+                );
+
+        /*
+         * Onboarding and rerolls assign latent
+         * potential. They never perform the
+         * Snapping itself.
+         */
         ScadrialPowerManager.configurePowers(
                 player,
                 allomanticProfile,
                 allomanticMetal,
                 false,
+                allomancyStrength,
                 feruchemicalProfile,
                 feruchemicalMetal
         );
     }
 
-    private static MetalType selectMistingMetal(
-            RandomSource random
+    private static double rollAllomancyStrength(
+            ResourceLocation originId,
+            RandomSource random,
+            PowerProfile allomanticProfile
     ) {
-        boolean selectSpecialMetal =
-                !SPECIAL_METALS.isEmpty()
-                        && random.nextInt(
-                        PROBABILITY_SCALE
-                ) < SPECIAL_MISTING_METAL_WEIGHT;
+        Objects.requireNonNull(
+                originId,
+                "Origin ID cannot be null"
+        );
 
-        if (selectSpecialMetal) {
-            return selectRandomMetal(
-                    random,
-                    SPECIAL_METALS
-            );
+        Objects.requireNonNull(
+                random,
+                "Random source cannot be null"
+        );
+
+        Objects.requireNonNull(
+                allomanticProfile,
+                "Allomantic profile cannot be null"
+        );
+
+        if (allomanticProfile
+                == PowerProfile.NONE) {
+
+            return 0.0;
         }
 
-        return selectStandardMetal(random);
+        /*
+         * Provisional configuration for Allomancy 0.
+         *
+         * The origin and random source are accepted
+         * now so this method can later introduce
+         * origin-dependent distributions without
+         * changing the assignment flow.
+         */
+        return TEST_ALLOMANCY_STRENGTH;
     }
 
     private static MetalType selectStandardMetal(

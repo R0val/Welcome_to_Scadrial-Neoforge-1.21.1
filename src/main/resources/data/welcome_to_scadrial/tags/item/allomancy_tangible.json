@@ -1,0 +1,373 @@
+{
+  "values": [
+    "minecraft:gilded_blackstone",
+
+    "minecraft:iron_block",
+    "minecraft:iron_bars",
+    "minecraft:iron_door",
+    "minecraft:iron_trapdoor",
+    "minecraft:heavy_weighted_pressure_plate",
+    "minecraft:chain",
+
+    "minecraft:gold_block",
+    "minecraft:light_weighted_pressure_plate",
+
+    "minecraft:netherite_block",
+
+    "minecraft:copper_block",
+    "minecraft:chiseled_copper",
+    "minecraft:copper_grate",
+    "minecraft:cut_copper",
+    "minecraft:cut_copper_stairs",
+    "minecraft:cut_copper_slab",
+    "minecraft:copper_door",
+    "minecraft:copper_trapdoor",
+    "minecraft:copper_bulb",
+
+    "minecraft:exposed_copper",
+    "minecraft:exposed_chiseled_copper",
+    "minecraft:exposed_copper_grate",
+    "minecraft:exposed_cut_copper",
+    "minecraft:exposed_cut_copper_stairs",
+    "minecraft:exposed_cut_copper_slab",
+    "minecraft:exposed_copper_door",
+    "minecraft:exposed_copper_trapdoor",
+    "minecraft:exposed_copper_bulb",
+
+    "minecraft:weathered_copper",
+    "minecraft:weathered_chiseled_copper",
+    "minecraft:weathered_copper_grate",
+    "minecraft:weathered_cut_copper",
+    "minecraft:weathered_cut_copper_stairs",
+    "minecraft:weathered_cut_copper_slab",
+    "minecraft:weathered_copper_door",
+    "minecraft:weathered_copper_trapdoor",
+    "minecraft:weathered_copper_bulb",
+
+    "minecraft:oxidized_copper",
+    "minecraft:oxidized_chiseled_copper",
+    "minecraft:oxidized_copper_grate",
+    "minecraft:oxidized_cut_copper",
+    "minecraft:oxidized_cut_copper_stairs",
+    "minecraft:oxidized_cut_copper_slab",
+    "minecraft:oxidized_copper_door",
+    "minecraft:oxidized_copper_trapdoor",
+    "minecraft:oxidized_copper_bulb",
+
+    "minecraft:waxed_copper_block",
+    "minecraft:waxed_chiseled_copper",
+    "minecraft:waxed_copper_grate",
+    "minecraft:waxed_cut_copper",
+    "minecraft:waxed_cut_copper_stairs",
+    "minecraft:waxed_cut_copper_slab",
+    "minecraft:waxed_copper_door",
+    "minecraft:waxed_copper_trapdoor",
+    "minecraft:waxed_copper_bulb",
+
+    "minecraft:waxed_exposed_copper",
+    "minecraft:waxed_exposed_chiseled_copper",
+    "minecraft:waxed_exposed_copper_grate",
+    "minecraft:waxed_exposed_cut_copper",
+    "minecraft:waxed_exposed_cut_copper_stairs",
+    "minecraft:waxed_exposed_cut_copper_slab",
+    "minecraft:waxed_exposed_copper_door",
+    "minecraft:waxed_exposed_copper_trapdoor",
+    "minecraft:waxed_exposed_copper_bulb",
+
+    "minecraft:waxed_weathered_copper",
+    "minecraft:waxed_weathered_chiseled_copper",
+    "minecraft:waxed_weathered_copper_grate",
+    "minecraft:waxed_weathered_cut_copper",
+    "minecraft:waxed_weathered_cut_copper_stairs",
+    "minecraft:waxed_weathered_cut_copper_slab",
+    "minecraft:waxed_weathered_copper_door",
+    "minecraft:waxed_weathered_copper_trapdoor",
+    "minecraft:waxed_weathered_copper_bulb",
+
+    "minecraft:waxed_oxidized_copper",
+    "minecraft:waxed_oxidized_chiseled_copper",
+    "minecraft:waxed_oxidized_copper_grate",
+    "minecraft:waxed_oxidized_cut_copper",
+    "minecraft:waxed_oxidized_cut_copper_stairs",
+    "minecraft:waxed_oxidized_cut_copper_slab",
+    "minecraft:waxed_oxidized_copper_door",
+    "minecraft:waxed_oxidized_copper_trapdoor",
+    "minecraft:waxed_oxidized_copper_bulb",
+
+    "minecraft:iron_ore",
+    "minecraft:deepslate_iron_ore",
+    "minecraft:copper_ore",
+    "minecraft:deepslate_copper_ore",
+    "minecraft:gold_ore",
+    "minecraft:deepslate_gold_ore",
+    "minecraft:nether_gold_ore",
+    "minecraft:ancient_debris",
+    "minecraft:raw_iron_block",
+    "minecraft:raw_copper_block",
+    "minecraft:raw_gold_block",
+
+    "minecraft:lantern",
+    "minecraft:soul_lantern",
+    "minecraft:redstone_lamp",
+    "minecraft:stonecutter",
+    "minecraft:smithing_table",
+    "minecraft:blast_furnace",
+    "minecraft:anvil",
+    "minecraft:chipped_anvil",
+    "minecraft:damaged_anvil",
+    "minecraft:cauldron",
+    "minecraft:bell",
+    "minecraft:lodestone",
+    "minecraft:lightning_rod",
+
+    "minecraft:oak_hanging_sign",
+    "minecraft:spruce_hanging_sign",
+    "minecraft:birch_hanging_sign",
+    "minecraft:jungle_hanging_sign",
+    "minecraft:acacia_hanging_sign",
+    "minecraft:dark_oak_hanging_sign",
+    "minecraft:mangrove_hanging_sign",
+    "minecraft:cherry_hanging_sign",
+    "minecraft:bamboo_hanging_sign",
+    "minecraft:crimson_hanging_sign",
+    "minecraft:warped_hanging_sign",
+
+    "minecraft:end_portal_frame",
+    "minecraft:vault",
+    "minecraft:spawner",
+    "minecraft:trial_spawner",
+
+    "minecraft:daylight_detector",
+    "minecraft:piston",
+    "minecraft:sticky_piston",
+    "minecraft:crafter",
+    "minecraft:hopper",
+    "minecraft:trapped_chest",
+
+    "minecraft:rail",
+    "minecraft:powered_rail",
+    "minecraft:detector_rail",
+    "minecraft:activator_rail",
+
+    "minecraft:heavy_core",
+
+    "minecraft:anvil",
+    "minecraft:chipped_anvil",
+    "minecraft:damaged_anvil",
+
+    "minecraft:trident",
+    "minecraft:arrow",
+    "minecraft:spectral_arrow",
+    "minecraft:tipped_arrow",
+
+    "minecraft:minecart",
+    "minecraft:chest_minecart",
+    "minecraft:furnace_minecart",
+    "minecraft:hopper_minecart",
+    "minecraft:tnt_minecart",
+    "minecraft:command_block_minecart",
+
+    "minecraft:iron_shovel",
+    "minecraft:iron_pickaxe",
+    "minecraft:iron_axe",
+    "minecraft:iron_hoe",
+    "minecraft:iron_sword",
+
+    "minecraft:golden_shovel",
+    "minecraft:golden_pickaxe",
+    "minecraft:golden_axe",
+    "minecraft:golden_hoe",
+    "minecraft:golden_sword",
+
+    "minecraft:netherite_shovel",
+    "minecraft:netherite_pickaxe",
+    "minecraft:netherite_axe",
+    "minecraft:netherite_hoe",
+    "minecraft:netherite_sword",
+
+    "minecraft:bucket",
+    "minecraft:water_bucket",
+    "minecraft:cod_bucket",
+    "minecraft:salmon_bucket",
+    "minecraft:tropical_fish_bucket",
+    "minecraft:pufferfish_bucket",
+    "minecraft:axolotl_bucket",
+    "minecraft:tadpole_bucket",
+    "minecraft:lava_bucket",
+    "minecraft:powder_snow_bucket",
+    "minecraft:milk_bucket",
+
+    "minecraft:flint_and_steel",
+    "minecraft:shears",
+    "minecraft:brush",
+    "minecraft:name_tag",
+    "minecraft:compass",
+    "minecraft:recovery_compass",
+    "minecraft:clock",
+    "minecraft:spyglass",
+    "minecraft:saddle",
+
+    "minecraft:mace",
+    "minecraft:shield",
+
+    "minecraft:chainmail_helmet",
+    "minecraft:chainmail_chestplate",
+    "minecraft:chainmail_leggings",
+    "minecraft:chainmail_boots",
+
+    "minecraft:iron_helmet",
+    "minecraft:iron_chestplate",
+    "minecraft:iron_leggings",
+    "minecraft:iron_boots",
+
+    "minecraft:golden_helmet",
+    "minecraft:golden_chestplate",
+    "minecraft:golden_leggings",
+    "minecraft:golden_boots",
+
+    "minecraft:netherite_helmet",
+    "minecraft:netherite_chestplate",
+    "minecraft:netherite_leggings",
+    "minecraft:netherite_boots",
+
+    "minecraft:iron_horse_armor",
+    "minecraft:golden_horse_armor",
+
+    "minecraft:totem_of_undying",
+    "minecraft:crossbow",
+
+    "minecraft:golden_apple",
+    "minecraft:enchanted_golden_apple",
+    "minecraft:golden_carrot",
+
+    "minecraft:raw_iron",
+    "minecraft:raw_copper",
+    "minecraft:raw_gold",
+    "minecraft:iron_nugget",
+    "minecraft:gold_nugget",
+    "minecraft:iron_ingot",
+    "minecraft:copper_ingot",
+    "minecraft:gold_ingot",
+    "minecraft:netherite_scrap",
+    "minecraft:netherite_ingot",
+    "minecraft:glistering_melon_slice",
+    "minecraft:trial_key",
+    "minecraft:ominous_trial_key",
+
+    "welcome_to_scadrial:iron_dust", "welcome_to_scadrial:iron_shavings", "welcome_to_scadrial:iron_bead",
+
+    "welcome_to_scadrial:steel_dust", "welcome_to_scadrial:steel_shavings", "welcome_to_scadrial:steel_bead",
+    "welcome_to_scadrial:steel_nugget", "welcome_to_scadrial:steel_ingot", "welcome_to_scadrial:steel_block",
+
+    "welcome_to_scadrial:tin_dust", "welcome_to_scadrial:tin_shavings", "welcome_to_scadrial:tin_bead",
+    "welcome_to_scadrial:tin_nugget", "welcome_to_scadrial:tin_ingot", "welcome_to_scadrial:tin_block",
+
+    "welcome_to_scadrial:pewter_dust", "welcome_to_scadrial:pewter_shavings", "welcome_to_scadrial:pewter_beads",
+    "welcome_to_scadrial:pewter_nugget", "welcome_to_scadrial:pewter_ingot", "welcome_to_scadrial:pewter_block",
+
+    "welcome_to_scadrial:zinc_dust", "welcome_to_scadrial:zinc_shavings", "welcome_to_scadrial:zinc_bead",
+    "welcome_to_scadrial:zinc_nugget", "welcome_to_scadrial:zinc_ingot", "welcome_to_scadrial:zinc_block",
+
+    "welcome_to_scadrial:brass_dust", "welcome_to_scadrial:brass_shavings", "welcome_to_scadrial:brass_bead",
+    "welcome_to_scadrial:brass_nugget", "welcome_to_scadrial:brass_ingot", "welcome_to_scadrial:brass_block",
+
+    "welcome_to_scadrial:copper_dust", "welcome_to_scadrial:copper_shavings", "welcome_to_scadrial:copper_bead",
+    "welcome_to_scadrial:copper_nugget",
+
+    "welcome_to_scadrial:bronze_dust", "welcome_to_scadrial:bronze_shavings", "welcome_to_scadrial:bronze_bead",
+    "welcome_to_scadrial:bronze_nugget", "welcome_to_scadrial:bronze_ingot", "welcome_to_scadrial:bronze_block",
+
+    "welcome_to_scadrial:chromium_dust", "welcome_to_scadrial:chromium_shavings", "welcome_to_scadrial:chromium_bead",
+    "welcome_to_scadrial:chromium_nugget", "welcome_to_scadrial:chromium_ingot", "welcome_to_scadrial:chromium_block",
+
+    "welcome_to_scadrial:nicrosil_dust", "welcome_to_scadrial:nicrosil_shavings", "welcome_to_scadrial:nicrosil_bead",
+    "welcome_to_scadrial:nicrosil_nugget", "welcome_to_scadrial:nicrosil_ingot", "welcome_to_scadrial:nicrosil_block",
+
+    "welcome_to_scadrial:duralumin_dust", "welcome_to_scadrial:duralumin_shavings", "welcome_to_scadrial:duralumin_bead",
+    "welcome_to_scadrial:duralumin_nugget", "welcome_to_scadrial:duralumin_ingot", "welcome_to_scadrial:duralumin_block",
+
+    "welcome_to_scadrial:cadmium_dust", "welcome_to_scadrial:cadmium_shavings", "welcome_to_scadrial:cadmium_bead",
+    "welcome_to_scadrial:cadmium_nugget", "welcome_to_scadrial:cadmium_ingot", "welcome_to_scadrial:cadmium_block",
+
+    "welcome_to_scadrial:bendalloy_dust", "welcome_to_scadrial:bendalloy_shavings", "welcome_to_scadrial:bendalloy_bead",
+    "welcome_to_scadrial:bendalloy_nugget", "welcome_to_scadrial:bendalloy_ingot", "welcome_to_scadrial:bendalloy_block",
+
+    "welcome_to_scadrial:gold_dust", "welcome_to_scadrial:gold_shavings", "welcome_to_scadrial:gold_bead",
+
+    "welcome_to_scadrial:electrum_dust", "welcome_to_scadrial:electrum_shavings", "welcome_to_scadrial:electrum_bead",
+    "welcome_to_scadrial:electrum_nugget", "welcome_to_scadrial:electrum_ingot", "welcome_to_scadrial:electrum_block",
+
+    "welcome_to_scadrial:atium_dust", "welcome_to_scadrial:atium_shavings", "welcome_to_scadrial:atium_bead",
+    "welcome_to_scadrial:atium_nugget", "welcome_to_scadrial:atium_ingot", "welcome_to_scadrial:atium_block",
+
+    "welcome_to_scadrial:lerasium_dust", "welcome_to_scadrial:lerasium_shavings", "welcome_to_scadrial:lerasium_bead",
+    "welcome_to_scadrial:lerasium_nugget", "welcome_to_scadrial:lerasium_ingot", "welcome_to_scadrial:lerasium_block",
+
+    "welcome_to_scadrial:armonium_dust", "welcome_to_scadrial:armonium_shavings", "welcome_to_scadrial:armonium_bead",
+    "welcome_to_scadrial:armonium_nugget", "welcome_to_scadrial:armonium_ingot", "welcome_to_scadrial:armonium_block",
+
+    "welcome_to_scadrial:iron_ring", "welcome_to_scadrial:iron_bracelet",
+    "welcome_to_scadrial:iron_band", "welcome_to_scadrial:iron_necklace",
+
+    "welcome_to_scadrial:steel_ring", "welcome_to_scadrial:steel_bracelet",
+    "welcome_to_scadrial:steel_band", "welcome_to_scadrial:steel_necklace",
+
+    "welcome_to_scadrial:tin_ring", "welcome_to_scadrial:tin_bracelet",
+    "welcome_to_scadrial:tin_band", "welcome_to_scadrial:tin_necklace",
+
+    "welcome_to_scadrial:pewter_ring", "welcome_to_scadrial:pewter_bracelet",
+    "welcome_to_scadrial:pewter_band", "welcome_to_scadrial:pewter_necklace",
+
+    "welcome_to_scadrial:zinc_ring", "welcome_to_scadrial:zinc_bracelet",
+    "welcome_to_scadrial:zinc_band", "welcome_to_scadrial:zinc_necklace",
+
+    "welcome_to_scadrial:brass_ring", "welcome_to_scadrial:brass_bracelet",
+    "welcome_to_scadrial:brass_band", "welcome_to_scadrial:brass_necklace",
+
+    "welcome_to_scadrial:copper_ring", "welcome_to_scadrial:copper_bracelet",
+    "welcome_to_scadrial:copper_band", "welcome_to_scadrial:copper_necklace",
+
+    "welcome_to_scadrial:bronze_ring", "welcome_to_scadrial:bronze_bracelet",
+    "welcome_to_scadrial:bronze_band", "welcome_to_scadrial:bronze_necklace",
+
+    "welcome_to_scadrial:chromium_ring", "welcome_to_scadrial:chromium_bracelet",
+    "welcome_to_scadrial:chromium_band", "welcome_to_scadrial:chromium_necklace",
+
+    "welcome_to_scadrial:nicrosil_ring", "welcome_to_scadrial:nicrosil_bracelet",
+    "welcome_to_scadrial:nicrosil_band", "welcome_to_scadrial:nicrosil_necklace",
+
+    "welcome_to_scadrial:duralumin_ring", "welcome_to_scadrial:duralumin_bracelet",
+    "welcome_to_scadrial:duralumin_band", "welcome_to_scadrial:duralumin_necklace",
+
+    "welcome_to_scadrial:cadmium_ring", "welcome_to_scadrial:cadmium_bracelet",
+    "welcome_to_scadrial:cadmium_band", "welcome_to_scadrial:cadmium_necklace",
+
+    "welcome_to_scadrial:bendalloy_ring", "welcome_to_scadrial:bendalloy_bracelet",
+    "welcome_to_scadrial:bendalloy_band", "welcome_to_scadrial:bendalloy_necklace",
+
+    "welcome_to_scadrial:gold_ring", "welcome_to_scadrial:gold_bracelet",
+    "welcome_to_scadrial:gold_band", "welcome_to_scadrial:gold_necklace",
+
+    "welcome_to_scadrial:electrum_ring", "welcome_to_scadrial:electrum_bracelet",
+    "welcome_to_scadrial:electrum_band", "welcome_to_scadrial:electrum_necklace",
+
+    "welcome_to_scadrial:atium_ring", "welcome_to_scadrial:atium_bracelet",
+    "welcome_to_scadrial:atium_band", "welcome_to_scadrial:atium_necklace",
+
+    "welcome_to_scadrial:lerasium_ring", "welcome_to_scadrial:lerasium_bracelet",
+    "welcome_to_scadrial:lerasium_band", "welcome_to_scadrial:lerasium_necklace",
+
+    "welcome_to_scadrial:iron_spike", "welcome_to_scadrial:steel_spike",
+    "welcome_to_scadrial:tin_spike", "welcome_to_scadrial:pewter_spike",
+    "welcome_to_scadrial:zinc_spike", "welcome_to_scadrial:brass_spike",
+    "welcome_to_scadrial:copper_spike", "welcome_to_scadrial:bronze_spike",
+    "welcome_to_scadrial:chromium_spike", "welcome_to_scadrial:nicrosil_spike",
+    "welcome_to_scadrial:duralumin_spike",
+    "welcome_to_scadrial:cadmium_spike", "welcome_to_scadrial:bendalloy_spike",
+    "welcome_to_scadrial:gold_spike", "welcome_to_scadrial:electrum_spike",
+    "welcome_to_scadrial:atium_spike", "welcome_to_scadrial:lerasium_spike",
+    "welcome_to_scadrial:armonium_spike", "welcome_to_scadrial:trellium_spike",
+
+    "welcome_to_scadrial:flask"
+  ]
+}

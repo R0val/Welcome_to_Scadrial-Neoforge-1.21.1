@@ -1,0 +1,36 @@
+{
+  "key.categories.welcome_to_scadrial": "Welcome to Scadrial",
+  "key.welcome_to_scadrial.allomancy_wheel": "Open Allomancy wheel",
+
+  "screen.welcome_to_scadrial.allomancy_wheel": "Allomancy",
+  "screen.welcome_to_scadrial.synchronizing": "Synchronizing Allomancy...",
+  "screen.welcome_to_scadrial.unassigned": "Powers not assigned yet",
+  "screen.welcome_to_scadrial.no_allomancy": "No Allomancy",
+  "screen.welcome_to_scadrial.latent": "Latent Allomancy (Snapping required)",
+  "screen.welcome_to_scadrial.strength": "Allomantic strength: %s",
+  "screen.welcome_to_scadrial.locked": "Power not acquired",
+  "screen.welcome_to_scadrial.available": "Power available",
+  "screen.welcome_to_scadrial.burning": "Power activated",
+  "screen.welcome_to_scadrial.empty": "Empty reserve",
+  "screen.welcome_to_scadrial.reserve_amount": "Reserve: %s u",
+
+  "metal.welcome_to_scadrial.iron": "Iron",
+  "metal.welcome_to_scadrial.steel": "Steel",
+  "metal.welcome_to_scadrial.tin": "Tin",
+  "metal.welcome_to_scadrial.pewter": "Pewter",
+  "metal.welcome_to_scadrial.zinc": "Zinc",
+  "metal.welcome_to_scadrial.brass": "Brass",
+  "metal.welcome_to_scadrial.copper": "Copper",
+  "metal.welcome_to_scadrial.bronze": "Bronze",
+  "metal.welcome_to_scadrial.chromium": "Chromium",
+  "metal.welcome_to_scadrial.nicrosil": "Nicrosil",
+  "metal.welcome_to_scadrial.aluminium": "Aluminium",
+  "metal.welcome_to_scadrial.duralumin": "Duralumin",
+  "metal.welcome_to_scadrial.cadmium": "Cadmium",
+  "metal.welcome_to_scadrial.bendalloy": "Bendalloy",
+  "metal.welcome_to_scadrial.gold": "Gold",
+  "metal.welcome_to_scadrial.electrum": "Electrum",
+
+  "key.welcome_to_scadrial.allomantic_push": "Allomantic push",
+  "key.welcome_to_scadrial.allomantic_pull": "Allomantic pull"
+}

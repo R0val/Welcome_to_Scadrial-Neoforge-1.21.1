@@ -4,9 +4,14 @@ import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.rovalio.scadrialmod.commands.ScadrialInvestedArtCommands;
+import net.rovalio.scadrialmod.item.ScadrialCreativeModeTabs;
+import net.rovalio.scadrialmod.item.ScadrialItems;
+import net.rovalio.scadrialmod.item.custom.ScadrialDataComponents;
+import net.rovalio.scadrialmod.network.ScadrialNetworking;
 import net.rovalio.scadrialmod.origin.ScadrialOriginInitializer;
 import net.rovalio.scadrialmod.player.ScadrialAttachments;
 import net.rovalio.scadrialmod.player.ScadrialPlayerLifecycleHandler;
+import net.rovalio.scadrialmod.recipe.ScadrialRecipeSerializers;
 import net.rovalio.scadrialmod.registry.*;
 import org.slf4j.Logger;
 
@@ -21,6 +26,11 @@ public final class ScadrialMod {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ScadrialMod(IEventBus modEventBus) {
+
+        ScadrialDataComponents.register(modEventBus);
+        ScadrialItems.register(modEventBus);
+        ScadrialCreativeModeTabs.register(modEventBus);
+        ScadrialRecipeSerializers.register(modEventBus);
 
         ScadrialAttachments.register(modEventBus);
 
@@ -37,5 +47,6 @@ public final class ScadrialMod {
 
         ScadrialPlayerLifecycleHandler.register();
 
+        ScadrialNetworking.register(modEventBus);
     }
 }

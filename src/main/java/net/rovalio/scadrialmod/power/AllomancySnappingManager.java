@@ -17,12 +17,6 @@ final class AllomancySnappingManager {
             MISTBORN_SNAPPING_MAX_DAMAGE = 0.20;
 
     private static final double
-            SPECIAL_MISTING_SNAPPING_MIN_DAMAGE = 0.12;
-
-    private static final double
-            SPECIAL_MISTING_SNAPPING_MAX_DAMAGE = 0.16;
-
-    private static final double
             STANDARD_MISTING_SNAPPING_MIN_DAMAGE = 0.08;
 
     private static final double
@@ -55,7 +49,8 @@ final class AllomancySnappingManager {
         double initialIntegrity =
                 spiritweb.getIntegrity();
 
-        // A completely broken Spiritweb cannot absorb another valid, reversible Snapping modifier.
+        // A completely broken Spiritweb cannot absorb another
+        // valid, reversible Snapping modifier.
         if (initialIntegrity <= 0.0) {
             return false;
         }
@@ -71,7 +66,8 @@ final class AllomancySnappingManager {
                         - rolledDamage
         );
 
-        // SpiritwebData clamps Integrity at zero. Store the amount that was actually removed so a reset
+        // SpiritwebData clamps Integrity at zero. Store the
+        // amount that was actually removed so a reset
         //can never restore more than this Snapping caused.
         double appliedDamage =
                 initialIntegrity
@@ -88,44 +84,13 @@ final class AllomancySnappingManager {
             ServerPlayer player,
             ScadrialPlayerData data
     ) {
-        double minimumDamage;
-        double maximumDamage;
+        double minimumDamage = data.isMistborn()
+                ? MISTBORN_SNAPPING_MIN_DAMAGE
+                : STANDARD_MISTING_SNAPPING_MIN_DAMAGE;
 
-        if (data.isMistborn()) {
-
-            minimumDamage =
-                    MISTBORN_SNAPPING_MIN_DAMAGE;
-
-            maximumDamage =
-                    MISTBORN_SNAPPING_MAX_DAMAGE;
-
-        } else {
-            MetalType metal =
-                    data.getAllomanticMetal()
-                            .orElseThrow(() ->
-                                    new IllegalStateException(
-                                            "A Misting profile "
-                                                    + "requires a metal"
-                                    )
-                            );
-
-            if (metal.isStandardMetal()) {
-
-                minimumDamage =
-                        STANDARD_MISTING_SNAPPING_MIN_DAMAGE;
-
-                maximumDamage =
-                        STANDARD_MISTING_SNAPPING_MAX_DAMAGE;
-
-            } else {
-
-                minimumDamage =
-                        SPECIAL_MISTING_SNAPPING_MIN_DAMAGE;
-
-                maximumDamage =
-                        SPECIAL_MISTING_SNAPPING_MAX_DAMAGE;
-            }
-        }
+        double maximumDamage = data.isMistborn()
+                ? MISTBORN_SNAPPING_MAX_DAMAGE
+                : STANDARD_MISTING_SNAPPING_MAX_DAMAGE;
 
         return minimumDamage
                 + player.getRandom().nextDouble()

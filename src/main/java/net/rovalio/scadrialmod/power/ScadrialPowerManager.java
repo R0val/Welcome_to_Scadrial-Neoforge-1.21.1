@@ -5,13 +5,31 @@ import net.minecraft.server.level.ServerPlayer;
 import net.rovalio.CosmereAPI.player.CosmereAttachments;
 import net.rovalio.CosmereAPI.player.SpiritwebData;
 import net.rovalio.scadrialmod.player.ScadrialAttachments;
+import net.rovalio.scadrialmod.network.ScadrialNetworking;
 import net.rovalio.scadrialmod.player.ScadrialPlayerData;
 import net.rovalio.scadrialmod.player.ScadrialPlayerData.PowerProfile;
+import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
 import net.rovalio.scadrialmod.registry.ScadrialInvestedArts;
 
 import java.util.Objects;
 
 public final class ScadrialPowerManager {
+
+    /*
+     * Temporary value used by administrative grants
+     * and migrations during Allomancy 0.
+     */
+    private static final double
+            DEFAULT_GRANTED_ALLOMANCY_STRENGTH =
+            16.0;
+
+    /*
+     * Permanent bonus per SINGLE profile,
+     * not per Scadrian origin.
+     */
+    private static final double
+            SCADRIAL_INVESTITURE_BONUS_BEU =
+            1.0 / 16.0;
 
     private ScadrialPowerManager() {
     }
@@ -21,6 +39,7 @@ public final class ScadrialPowerManager {
             PowerProfile allomanticProfile,
             MetalType allomanticMetal,
             boolean allomancySnapped,
+            double allomancyStrength,
             PowerProfile feruchemicalProfile,
             MetalType feruchemicalMetal
     ) {
@@ -44,8 +63,14 @@ public final class ScadrialPowerManager {
                 feruchemicalMetal
         );
 
+        validateAllomancyStrength(
+                allomanticProfile,
+                allomancyStrength
+        );
+
         if (allomancySnapped
-                && allomanticProfile == PowerProfile.NONE) {
+                && allomanticProfile
+                == PowerProfile.NONE) {
 
             throw new IllegalArgumentException(
                     "A player without an Allomantic "
@@ -75,14 +100,23 @@ public final class ScadrialPowerManager {
                 allomancySnapped
         );
 
+        /*
+         * The profile must be configured before
+         * ScadrialPlayerData validates its strength.
+         */
+        data.setAllomancyStrength(
+                allomancyStrength
+        );
+
         data.configureFeruchemy(
                 feruchemicalProfile,
                 feruchemicalMetal
         );
 
         /*
-         * Replace the old profile contribution with the new one.
-         * Repeated grants therefore do not accumulate Investiture.
+         * Replace the previous profile contribution
+         * with the new one. Repeated grants therefore
+         * do not accumulate permanent Investiture.
          */
         double investitureDelta =
                 getInvestitureBonusBEU(data)
@@ -95,6 +129,100 @@ public final class ScadrialPowerManager {
 
         reconcile(player);
         data.completePowerAssignment();
+        ScadrialNetworking.sync(player);
+    }
+
+    /**
+     * Checks whether the character possesses the
+     * power required by a specific fuel.
+     *
+     * Latent Allomancy satisfies this check.
+     */
+    public static boolean hasAllomanticAccess(
+            ScadrialPlayerData data,
+            AllomanticFuel fuel
+    ) {
+        Objects.requireNonNull(
+                data,
+                "Scadrial data cannot be null"
+        );
+
+        Objects.requireNonNull(
+                fuel,
+                "Allomantic fuel cannot be null"
+        );
+
+        return data.getAllomanticMetals()
+                .contains(
+                        fuel.getRequiredPower()
+                );
+    }
+
+    /**
+     * Checks power compatibility and the current
+     * Snapping requirement.
+     *
+     * This does not yet check reserves, effect
+     * implementation or other burning conditions.
+     */
+    public static boolean canUseAllomanticFuel(
+            ServerPlayer player,
+            AllomanticFuel fuel
+    ) {
+        Objects.requireNonNull(
+                fuel,
+                "Allomantic fuel cannot be null"
+        );
+
+        ScadrialPlayerData data =
+                getData(player);
+
+        return data.canUseAllomancy()
+                && hasAllomanticAccess(
+                data,
+                fuel
+        );
+    }
+
+    public static void setAllomancyStrength(
+            ServerPlayer player,
+            double strength
+    ) {
+        ScadrialPlayerData data = getData(player);
+        data.setAllomancyStrength(strength);
+        ScadrialNetworking.sync(player);
+    }
+
+    /**
+     * Resolves legacy data that already contains a
+     * completed power assignment but no strength.
+     *
+     * The method is idempotent and must run on the
+     * logical server.
+     */
+    public static boolean
+    initializeMissingAllomancyStrength(
+            ServerPlayer player
+    ) {
+        ScadrialPlayerData data =
+                getData(player);
+
+        if (!data.isPowerAssignmentComplete()
+                || data.isAllomancyStrengthInitialized()) {
+
+            return false;
+        }
+
+        double migratedStrength =
+                data.hasAllomancy()
+                        ? DEFAULT_GRANTED_ALLOMANCY_STRENGTH
+                        : 0.0;
+
+        data.setAllomancyStrength(
+                migratedStrength
+        );
+
+        return true;
     }
 
     public static boolean snapAllomancy(
@@ -112,6 +240,7 @@ public final class ScadrialPowerManager {
 
         if (snapped) {
             reconcile(player);
+            ScadrialNetworking.sync(player);
         }
 
         return snapped;
@@ -136,11 +265,18 @@ public final class ScadrialPowerManager {
                         .filter(metal::equals)
                         .isPresent();
 
+        double strength =
+                resolveAllomancyStrength(
+                        data,
+                        PowerProfile.SINGLE
+                );
+
         configurePowers(
                 player,
                 PowerProfile.SINGLE,
                 metal,
                 preserveSnapping,
+                strength,
                 data.getFeruchemicalProfile(),
                 data.getFeruchemicalMetal()
                         .orElse(null)
@@ -157,11 +293,18 @@ public final class ScadrialPowerManager {
                 data.isAllomancySnapped()
                         && data.isMistborn();
 
+        double strength =
+                resolveAllomancyStrength(
+                        data,
+                        PowerProfile.FULL
+                );
+
         configurePowers(
                 player,
                 PowerProfile.FULL,
                 null,
                 preserveSnapping,
+                strength,
                 data.getFeruchemicalProfile(),
                 data.getFeruchemicalMetal()
                         .orElse(null)
@@ -183,6 +326,7 @@ public final class ScadrialPowerManager {
                 PowerProfile.NONE,
                 null,
                 false,
+                0.0,
                 data.getFeruchemicalProfile(),
                 data.getFeruchemicalMetal()
                         .orElse(null)
@@ -203,12 +347,19 @@ public final class ScadrialPowerManager {
         ScadrialPlayerData data =
                 getData(player);
 
+        double strength =
+                resolveAllomancyStrength(
+                        data,
+                        data.getAllomanticProfile()
+                );
+
         configurePowers(
                 player,
                 data.getAllomanticProfile(),
                 data.getAllomanticMetal()
                         .orElse(null),
                 data.isAllomancySnapped(),
+                strength,
                 PowerProfile.SINGLE,
                 metal
         );
@@ -220,12 +371,19 @@ public final class ScadrialPowerManager {
         ScadrialPlayerData data =
                 getData(player);
 
+        double strength =
+                resolveAllomancyStrength(
+                        data,
+                        data.getAllomanticProfile()
+                );
+
         configurePowers(
                 player,
                 data.getAllomanticProfile(),
                 data.getAllomanticMetal()
                         .orElse(null),
                 data.isAllomancySnapped(),
+                strength,
                 PowerProfile.FULL,
                 null
         );
@@ -241,12 +399,19 @@ public final class ScadrialPowerManager {
             return false;
         }
 
+        double strength =
+                resolveAllomancyStrength(
+                        data,
+                        data.getAllomanticProfile()
+                );
+
         configurePowers(
                 player,
                 data.getAllomanticProfile(),
                 data.getAllomanticMetal()
                         .orElse(null),
                 data.isAllomancySnapped(),
+                strength,
                 PowerProfile.NONE,
                 null
         );
@@ -285,6 +450,7 @@ public final class ScadrialPowerManager {
         );
 
         reconcile(player);
+        ScadrialNetworking.sync(player);
     }
 
     public static void reconcile(
@@ -297,6 +463,14 @@ public final class ScadrialPowerManager {
 
         ScadrialPlayerData scadrialData =
                 ScadrialAttachments.get(player);
+
+        /*
+         * Handles old completed profiles once.
+         * New unassigned players remain uninitialized.
+         */
+        initializeMissingAllomancyStrength(
+                player
+        );
 
         SpiritwebData spiritweb =
                 CosmereAttachments.get(player)
@@ -320,13 +494,75 @@ public final class ScadrialPowerManager {
 
         /*
          * Hemalurgy is deliberately untouched.
-         * ScadrialPlayerData does not yet store Hemalurgic spikes or stolen powers.
+         * ScadrialPlayerData does not yet store
+         * Hemalurgic spikes or stolen powers.
          */
-
         InvestedArtConnectionManager.reconcile(
                 scadrialData,
                 spiritweb
         );
+    }
+
+    private static double resolveAllomancyStrength(
+            ScadrialPlayerData data,
+            PowerProfile targetProfile
+    ) {
+        Objects.requireNonNull(
+                data,
+                "Scadrial data cannot be null"
+        );
+
+        Objects.requireNonNull(
+                targetProfile,
+                "Target Allomantic profile cannot be null"
+        );
+
+        if (targetProfile == PowerProfile.NONE) {
+            return 0.0;
+        }
+
+        if (data.hasActiveAllomancyStrength()) {
+            return data.getAllomancyStrength();
+        }
+
+        return DEFAULT_GRANTED_ALLOMANCY_STRENGTH;
+    }
+
+    private static void validateAllomancyStrength(
+            PowerProfile profile,
+            double strength
+    ) {
+        Objects.requireNonNull(
+                profile,
+                "Allomantic profile cannot be null"
+        );
+
+        if (!Double.isFinite(strength)
+                || strength < 0.0) {
+
+            throw new IllegalArgumentException(
+                    "Allomancy strength must be finite "
+                            + "and greater than or equal to 0"
+            );
+        }
+
+        if (profile == PowerProfile.NONE
+                && strength != 0.0) {
+
+            throw new IllegalArgumentException(
+                    "A profile without Allomancy "
+                            + "must have strength 0"
+            );
+        }
+
+        if (profile != PowerProfile.NONE
+                && strength <= 0.0) {
+
+            throw new IllegalArgumentException(
+                    "An Allomantic profile requires "
+                            + "positive Allomancy strength"
+            );
+        }
     }
 
     private static void restoreRecordedSnappingIntegrity(
@@ -358,7 +594,6 @@ public final class ScadrialPowerManager {
             boolean shouldPossess
     ) {
         if (shouldPossess) {
-
             if (!spiritweb.hasInvestedArt(
                     investedArtId
             )) {
@@ -424,10 +659,6 @@ public final class ScadrialPowerManager {
         }
     }
 
-    // Permanent bonus per SINGLE profile, not per Scadrian origin.
-    private static final double
-            SCADRIAL_INVESTITURE_BONUS_BEU = 1.0 / 16.0;
-
     public static double getInvestitureBonusBEU(
             ScadrialPlayerData data
     ) {
@@ -437,8 +668,12 @@ public final class ScadrialPowerManager {
         );
 
         return SCADRIAL_INVESTITURE_BONUS_BEU * (
-                getProfileWeight(data.getAllomanticProfile())
-                        + getProfileWeight(data.getFeruchemicalProfile())
+                getProfileWeight(
+                        data.getAllomanticProfile()
+                )
+                        + getProfileWeight(
+                        data.getFeruchemicalProfile()
+                )
         );
     }
 

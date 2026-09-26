@@ -2,17 +2,15 @@ package net.rovalio.scadrialmod.player;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.StringRepresentable;
 import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
 import net.rovalio.scadrialmod.power.MetalType;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public final class ScadrialPlayerData
         implements INBTSerializable<CompoundTag> {
@@ -36,14 +34,17 @@ public final class ScadrialPlayerData
         }
 
         public static Optional<PowerProfile>
-        fromSerializedName(String serializedName) {
-
+        fromSerializedName(
+                String serializedName
+        ) {
             if (serializedName == null) {
                 return Optional.empty();
             }
 
             return switch (
-                    serializedName.toLowerCase(Locale.ROOT)
+                    serializedName.toLowerCase(
+                            Locale.ROOT
+                    )
                     ) {
                 case "none" ->
                         Optional.of(NONE);
@@ -138,6 +139,10 @@ public final class ScadrialPlayerData
             "PowerAssignmentComplete";
 
     private static final String
+            TAG_ALLOMANCY_STRENGTH =
+            "AllomancyStrength";
+
+    private static final String
             TAG_ALLOMANCY =
             "Allomancy";
 
@@ -165,7 +170,24 @@ public final class ScadrialPlayerData
             MAX_RECORDED_SNAPPING_DAMAGE =
             1.0;
 
+    private static final String TAG_ALLOMANTIC_RESERVES =
+            "AllomanticReserves";
+
+    public static final long RESERVE_SUBUNITS_PER_UNIT =
+            1_000L;
+
+    private final EnumMap<AllomanticFuel, Long> allomanticReserves =
+            new EnumMap<>(AllomanticFuel.class);
+
+    private static final String TAG_BURNING_FUELS = "BurningFuels";
+
+    private final EnumSet<AllomanticFuel> burningFuels =
+            EnumSet.noneOf(AllomanticFuel.class);
+
     private boolean powerAssignmentComplete;
+
+    private boolean allomancyStrengthInitialized;
+    private double allomancyStrength;
 
     private MetallicProfile allomancy;
     private MetallicProfile feruchemy;
@@ -182,6 +204,31 @@ public final class ScadrialPlayerData
     }
 
     public void completePowerAssignment() {
+        if (!allomancyStrengthInitialized) {
+            throw new IllegalStateException(
+                    "Power assignment cannot be completed "
+                            + "before Allomancy strength is resolved"
+            );
+        }
+
+        if (hasAllomancy()
+                && allomancyStrength <= 0.0) {
+
+            throw new IllegalStateException(
+                    "An Allomantic profile requires "
+                            + "positive Allomancy strength"
+            );
+        }
+
+        if (!hasAllomancy()
+                && allomancyStrength != 0.0) {
+
+            throw new IllegalStateException(
+                    "A profile without Allomancy "
+                            + "must have strength 0"
+            );
+        }
+
         powerAssignmentComplete = true;
     }
 
@@ -193,24 +240,6 @@ public final class ScadrialPlayerData
         return Optional.ofNullable(
                 allomancy.metal()
         );
-    }
-
-    public PowerProfile getFeruchemicalProfile() {
-        return feruchemy.profile();
-    }
-
-    public Optional<MetalType> getFeruchemicalMetal() {
-        return Optional.ofNullable(
-                feruchemy.metal()
-        );
-    }
-
-    public boolean isAllomancySnapped() {
-        return allomancySnapped;
-    }
-
-    public double getAllomancySnappingDamage() {
-        return allomancySnappingDamage;
     }
 
     public void configureAllomancy(
@@ -258,15 +287,95 @@ public final class ScadrialPlayerData
                 preservedSnappingDamage;
     }
 
-    public void configureFeruchemy(
-            PowerProfile profile,
-            MetalType metal
+    public boolean hasAllomancy() {
+        return allomancy.hasPower();
+    }
+
+    public boolean canUseAllomancy() {
+        return hasAllomancy()
+                && allomancySnapped
+                && hasActiveAllomancyStrength();
+    }
+
+    public boolean isMisting() {
+        return allomancy.profile()
+                == PowerProfile.SINGLE;
+    }
+
+    public boolean isMistborn() {
+        return allomancy.profile()
+                == PowerProfile.FULL;
+    }
+
+    public Set<MetalType> getAllomanticMetals() {
+        return allomancy.getMetals();
+    }
+
+    public boolean isAllomancyStrengthInitialized() {
+        return allomancyStrengthInitialized;
+    }
+
+    public boolean hasActiveAllomancyStrength() {
+        return hasAllomancy()
+                && allomancyStrengthInitialized
+                && allomancyStrength > 0.0;
+    }
+
+    public double getAllomancyStrength() {
+        if (!allomancyStrengthInitialized) {
+            throw new IllegalStateException(
+                    "Allomancy strength has not been initialized"
+            );
+        }
+
+        return allomancyStrength;
+    }
+
+    public void setAllomancyStrength(
+            double strength
     ) {
-        feruchemy =
-                MetallicProfile.of(
-                        profile,
-                        metal
-                );
+        if (!Double.isFinite(strength)
+                || strength < 0.0) {
+
+            throw new IllegalArgumentException(
+                    "Allomancy strength must be finite "
+                            + "and greater than or equal to 0"
+            );
+        }
+
+        if (hasAllomancy()
+                && strength <= 0.0) {
+
+            throw new IllegalArgumentException(
+                    "An Allomantic profile requires "
+                            + "positive Allomancy strength"
+            );
+        }
+
+        if (!hasAllomancy()
+                && strength != 0.0) {
+
+            throw new IllegalArgumentException(
+                    "A profile without Allomancy "
+                            + "must have strength 0"
+            );
+        }
+
+        allomancyStrengthInitialized = true;
+        allomancyStrength = strength;
+    }
+
+    public void clearAllomancyStrengthInitialization() {
+        allomancyStrengthInitialized = false;
+        allomancyStrength = 0.0;
+    }
+
+    public boolean isAllomancySnapped() {
+        return allomancySnapped;
+    }
+
+    public double getAllomancySnappingDamage() {
+        return allomancySnappingDamage;
     }
 
     public void recordAllomancySnapping(
@@ -297,27 +406,38 @@ public final class ScadrialPlayerData
         allomancySnappingDamage = damage;
     }
 
-    public boolean hasAllomancy() {
-        return allomancy.hasPower();
+    private static boolean isValidSnappingDamage(
+            double damage
+    ) {
+        return Double.isFinite(damage)
+                && damage > 0.0
+                && damage
+                <= MAX_RECORDED_SNAPPING_DAMAGE;
     }
 
-    public boolean canUseAllomancy() {
-        return hasAllomancy()
-                && allomancySnapped;
+    public PowerProfile getFeruchemicalProfile() {
+        return feruchemy.profile();
+    }
+
+    public Optional<MetalType> getFeruchemicalMetal() {
+        return Optional.ofNullable(
+                feruchemy.metal()
+        );
+    }
+
+    public void configureFeruchemy(
+            PowerProfile profile,
+            MetalType metal
+    ) {
+        feruchemy =
+                MetallicProfile.of(
+                        profile,
+                        metal
+                );
     }
 
     public boolean hasFeruchemy() {
         return feruchemy.hasPower();
-    }
-
-    public boolean isMisting() {
-        return allomancy.profile()
-                == PowerProfile.SINGLE;
-    }
-
-    public boolean isMistborn() {
-        return allomancy.profile()
-                == PowerProfile.FULL;
     }
 
     public boolean isFerring() {
@@ -330,6 +450,10 @@ public final class ScadrialPlayerData
                 == PowerProfile.FULL;
     }
 
+    public Set<MetalType> getFeruchemicalMetals() {
+        return feruchemy.getMetals();
+    }
+
     public boolean isTwinborn() {
         return hasAllomancy()
                 && hasFeruchemy();
@@ -340,16 +464,7 @@ public final class ScadrialPlayerData
                 && isFeruchemist();
     }
 
-    public Set<MetalType> getAllomanticMetals() {
-        return allomancy.getMetals();
-    }
-
-    public Set<MetalType> getFeruchemicalMetals() {
-        return feruchemy.getMetals();
-    }
-
     public Set<MetalType> getCompoundableMetals() {
-
         EnumSet<MetalType> compoundableMetals =
                 EnumSet.noneOf(MetalType.class);
 
@@ -370,6 +485,151 @@ public final class ScadrialPlayerData
         return !getCompoundableMetals().isEmpty();
     }
 
+    public long getAllomanticReserveSubunits(
+            AllomanticFuel fuel
+    ) {
+        Objects.requireNonNull(
+                fuel,
+                "Allomantic fuel cannot be null"
+        );
+
+        return allomanticReserves.getOrDefault(fuel, 0L);
+    }
+
+    public long getAllomanticReserveSpaceSubunits(
+            AllomanticFuel fuel,
+            long capacitySubunits
+    ) {
+        requireNonNegativeReserveAmount(
+                capacitySubunits,
+                "Reserve capacity"
+        );
+
+        long current =
+                getAllomanticReserveSubunits(fuel);
+
+        return current >= capacitySubunits
+                ? 0L
+                : capacitySubunits - current;
+    }
+
+    /*
+     * Adds as much as fits and returns the amount accepted.
+     * The caller decides whether partial acceptance is valid.
+     */
+    public long addAllomanticReserveSubunits(
+            AllomanticFuel fuel,
+            long amountSubunits,
+            long capacitySubunits
+    ) {
+        Objects.requireNonNull(
+                fuel,
+                "Allomantic fuel cannot be null"
+        );
+
+        requireNonNegativeReserveAmount(
+                amountSubunits,
+                "Reserve amount"
+        );
+
+        requireNonNegativeReserveAmount(
+                capacitySubunits,
+                "Reserve capacity"
+        );
+
+        long current =
+                getAllomanticReserveSubunits(fuel);
+
+        long space =
+                getAllomanticReserveSpaceSubunits(
+                        fuel,
+                        capacitySubunits
+                );
+
+        long accepted =
+                Math.min(amountSubunits, space);
+
+        if (accepted > 0L) {
+            allomanticReserves.put(
+                    fuel,
+                    current + accepted
+            );
+        }
+
+        return accepted;
+    }
+
+    //Removes up to the requested amount and returns how much was actually consumed.
+    public long consumeAllomanticReserveSubunits(
+            AllomanticFuel fuel,
+            long requestedSubunits
+    ) {
+        Objects.requireNonNull(
+                fuel,
+                "Allomantic fuel cannot be null"
+        );
+
+        requireNonNegativeReserveAmount(
+                requestedSubunits,
+                "Requested reserve amount"
+        );
+
+        long current =
+                getAllomanticReserveSubunits(fuel);
+
+        long consumed =
+                Math.min(requestedSubunits, current);
+
+        long remaining =
+                current - consumed;
+
+        if (remaining == 0L) {
+            allomanticReserves.remove(fuel);
+        } else {
+            allomanticReserves.put(fuel, remaining);
+        }
+
+        return consumed;
+    }
+
+    public void clearAllomanticReserves() {
+        allomanticReserves.clear();
+    }
+
+    public Map<AllomanticFuel, Long>
+    getAllomanticReservesSubunits() {
+        return Collections.unmodifiableMap(
+                new EnumMap<>(allomanticReserves)
+        );
+    }
+
+    private static void requireNonNegativeReserveAmount(
+            long amount,
+            String description
+    ) {
+        if (amount < 0L) {
+            throw new IllegalArgumentException(
+                    description + " cannot be negative"
+            );
+        }
+    }
+
+    public boolean isBurning(AllomanticFuel fuel) {
+        return burningFuels.contains(fuel);
+    }
+
+    public void setBurning(AllomanticFuel fuel, boolean burning) {
+        if (burning) {
+            burningFuels.add(fuel);
+        } else {
+            burningFuels.remove(fuel);
+        }
+    }
+
+    public Set<AllomanticFuel> getBurningFuels() {
+        return Collections.unmodifiableSet(EnumSet.copyOf(burningFuels));
+    }
+
     public void reset() {
         powerAssignmentComplete = false;
 
@@ -381,6 +641,12 @@ public final class ScadrialPlayerData
 
         allomancySnapped = false;
         allomancySnappingDamage = 0.0;
+
+        allomancyStrengthInitialized = false;
+        allomancyStrength = 0.0;
+
+        burningFuels.clear();
+        allomanticReserves.clear();
     }
 
     @Override
@@ -393,6 +659,25 @@ public final class ScadrialPlayerData
         rootTag.putBoolean(
                 TAG_POWER_ASSIGNMENT_COMPLETE,
                 powerAssignmentComplete
+        );
+
+        CompoundTag reservesTag =
+                new CompoundTag();
+
+        for (Map.Entry<AllomanticFuel, Long> entry
+                : allomanticReserves.entrySet()) {
+
+            if (entry.getValue() > 0L) {
+                reservesTag.putLong(
+                        entry.getKey().getSerializedName(),
+                        entry.getValue()
+                );
+            }
+        }
+
+        rootTag.put(
+                TAG_ALLOMANTIC_RESERVES,
+                reservesTag
         );
 
         CompoundTag allomancyTag =
@@ -414,6 +699,13 @@ public final class ScadrialPlayerData
             );
         }
 
+        if (allomancyStrengthInitialized) {
+            rootTag.putDouble(
+                    TAG_ALLOMANCY_STRENGTH,
+                    allomancyStrength
+            );
+        }
+
         rootTag.put(
                 TAG_ALLOMANCY,
                 allomancyTag
@@ -423,6 +715,17 @@ public final class ScadrialPlayerData
                 TAG_FERUCHEMY,
                 serializeProfile(feruchemy)
         );
+
+        ListTag burningTag = new ListTag();
+
+        for (AllomanticFuel fuel : burningFuels) {
+            burningTag.add(StringTag.valueOf(fuel.getSerializedName()));
+        }
+
+        rootTag.put(TAG_BURNING_FUELS, burningTag);
+
+
+
 
         return rootTag;
     }
@@ -438,6 +741,8 @@ public final class ScadrialPlayerData
             return;
         }
 
+        loadAllomanticReserves(rootTag);
+
         boolean assignmentComplete =
                 rootTag.contains(
                         TAG_POWER_ASSIGNMENT_COMPLETE,
@@ -447,10 +752,6 @@ public final class ScadrialPlayerData
                         TAG_POWER_ASSIGNMENT_COMPLETE
                 );
 
-        /*
-         * An incomplete assignment must not restore
-         * partially written power data.
-         */
         if (!assignmentComplete) {
             return;
         }
@@ -514,16 +815,47 @@ public final class ScadrialPlayerData
         allomancySnappingDamage =
                 loadedSnappingDamage;
 
-        powerAssignmentComplete = true;
-    }
+        if (!loadedAllomancy.hasPower()) {
+            allomancyStrengthInitialized = true;
+            allomancyStrength = 0.0;
 
-    private static boolean isValidSnappingDamage(
-            double damage
-    ) {
-        return Double.isFinite(damage)
-                && damage > 0.0
-                && damage
-                <= MAX_RECORDED_SNAPPING_DAMAGE;
+        } else if (rootTag.contains(
+                TAG_ALLOMANCY_STRENGTH,
+                Tag.TAG_DOUBLE
+        )) {
+            double loadedStrength =
+                    rootTag.getDouble(
+                            TAG_ALLOMANCY_STRENGTH
+                    );
+
+            if (Double.isFinite(loadedStrength)
+                    && loadedStrength > 0.0) {
+
+                allomancyStrengthInitialized = true;
+                allomancyStrength = loadedStrength;
+            } else {
+                clearAllomancyStrengthInitialization();
+            }
+
+        } else {
+            // Perfil antiguo: la fuerza se inicializará en el servidor.
+            clearAllomancyStrengthInitialization();
+        }
+
+        powerAssignmentComplete = true;
+
+        if (rootTag.contains(TAG_BURNING_FUELS, Tag.TAG_LIST)) {
+            ListTag burningTag = rootTag.getList(
+                    TAG_BURNING_FUELS,
+                    Tag.TAG_STRING
+            );
+
+            for (int i = 0; i < burningTag.size(); i++) {
+                AllomanticFuel.fromSerializedName(
+                        burningTag.getString(i)
+                ).ifPresent(burningFuels::add);
+            }
+        }
     }
 
     private static CompoundTag serializeProfile(
@@ -574,8 +906,31 @@ public final class ScadrialPlayerData
                 loadMetal(profileTag);
 
         /*
-         * Invalid or missing data is reduced to NONE.
-         * This prevents corrupted SINGLE profiles.
+         * Migrate the former Era 1 "atium Misting"
+         * profile to the ELECTRUM power family.
+         *
+         * The same migration is deliberately not
+         * applied to Feruchemy.
+         */
+        if (TAG_ALLOMANCY.equals(key)
+                && profile == PowerProfile.SINGLE
+                && profileTag.contains(
+                TAG_METAL,
+                Tag.TAG_STRING
+        )
+                && "atium".equalsIgnoreCase(
+                profileTag.getString(
+                        TAG_METAL
+                )
+        )) {
+
+            metal = MetalType.ELECTRUM;
+        }
+
+        /*
+         * Invalid or missing SINGLE data is reduced
+         * to NONE. This also removes unsupported
+         * legacy Feruchemical atium profiles.
          */
         if (profile == PowerProfile.SINGLE
                 && metal == null) {
@@ -629,5 +984,48 @@ public final class ScadrialPlayerData
                         )
                 )
                 .orElse(null);
+    }
+
+    private void loadAllomanticReserves(
+            CompoundTag rootTag
+    ) {
+        if (!rootTag.contains(
+                TAG_ALLOMANTIC_RESERVES,
+                Tag.TAG_COMPOUND
+        )) {
+            return;
+        }
+
+        CompoundTag reservesTag =
+                rootTag.getCompound(
+                        TAG_ALLOMANTIC_RESERVES
+                );
+
+        for (String serializedName
+                : reservesTag.getAllKeys()) {
+
+            Optional<AllomanticFuel> fuel =
+                    AllomanticFuel.fromSerializedName(
+                            serializedName
+                    );
+
+            if (fuel.isEmpty()
+                    || !reservesTag.contains(
+                    serializedName,
+                    Tag.TAG_LONG
+            )) {
+                continue;
+            }
+
+            long amount =
+                    reservesTag.getLong(serializedName);
+
+            if (amount > 0L) {
+                allomanticReserves.put(
+                        fuel.get(),
+                        amount
+                );
+            }
+        }
     }
 }
