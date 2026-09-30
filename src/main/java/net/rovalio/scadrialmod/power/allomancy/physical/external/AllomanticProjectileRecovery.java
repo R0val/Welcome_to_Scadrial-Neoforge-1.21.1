@@ -154,7 +154,8 @@ public final class AllomanticProjectileRecovery {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void beforeProjectileTick(EntityTickEvent.Pre event) {
-        if (!(event.getEntity() instanceof Projectile projectile)
+        if (PULLS.isEmpty()
+                || !(event.getEntity() instanceof Projectile projectile)
                 || projectile.level().isClientSide()
                 || projectile.isRemoved()) {
             return;
@@ -205,7 +206,8 @@ public final class AllomanticProjectileRecovery {
 
     @SubscribeEvent
     public static void afterProjectileTick(EntityTickEvent.Post event) {
-        if (!(event.getEntity() instanceof Projectile projectile)
+        if (PULLS.isEmpty()
+                || !(event.getEntity() instanceof Projectile projectile)
                 || projectile.level().isClientSide()) {
             return;
         }
