@@ -7,7 +7,6 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.Vec3;
 
 import net.rovalio.scadrialmod.power.allomancy.physical.internal.TinHearing;
 
@@ -38,7 +37,9 @@ public abstract class ServerLevelSoundMixin {
         TinHearing.broadcastDistant(
                 (ServerLevel) (Object) this,
                 excluded,
-                new Vec3(x, y, z),
+                x,
+                y,
+                z,
                 sound,
                 category,
                 volume,
@@ -64,7 +65,9 @@ public abstract class ServerLevelSoundMixin {
         TinHearing.broadcastDistant(
                 (ServerLevel) (Object) this,
                 excluded,
-                entity.position(),
+                entity.getX(),
+                entity.getY(),
+                entity.getZ(),
                 sound,
                 category,
                 volume,
