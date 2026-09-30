@@ -48,15 +48,8 @@ public final class EquipmentClient {
         Minecraft mc = Minecraft.getInstance();
 
         if (mc.level == null
-                || !mc.level.dimension().location()
-                .equals(motion.dimension())) {
-            return;
-        }
-
-        var entity = mc.level.getEntity(motion.id());
-
-        if (!(entity instanceof AbstractArrow arrow)
-                || !arrow.getUUID().equals(motion.uuid())) {
+                || !(mc.level.getEntity(motion.id())
+                instanceof AbstractArrow arrow)) {
             return;
         }
 

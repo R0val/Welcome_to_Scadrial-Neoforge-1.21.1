@@ -61,7 +61,7 @@ public final class AllomanticEquipment {
                             MobCategory.MISC
                     )
                     .sized(0.25F, 0.25F)
-                    .clientTrackingRange(16)
+                    .clientTrackingRange(4)
                     .updateInterval(1)
                     .build(
                             ScadrialMod.MOD_ID
