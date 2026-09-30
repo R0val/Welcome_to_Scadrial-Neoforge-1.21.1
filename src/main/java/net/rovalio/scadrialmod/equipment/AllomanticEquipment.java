@@ -23,7 +23,6 @@ import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.entity.CoinProjectile;
 import net.rovalio.scadrialmod.item.ScadrialItems;
 import net.rovalio.scadrialmod.player.ScadrialAttachments;
-import net.rovalio.scadrialmod.power.ScadrialPowerManager;
 import net.rovalio.scadrialmod.power.allomancy.*;
 import net.rovalio.scadrialmod.power.allomancy.physical.external.ExternalAllomancyMath;
 import net.rovalio.scadrialmod.power.allomancy.physical.external.ExternalAllomancyPerception;
@@ -323,23 +322,9 @@ public final class AllomanticEquipment {
         var data = ScadrialAttachments.get(player);
 
         return canAct(player)
-                && data.isBurning(AllomanticFuel.STEEL)
-                && data.getAllomanticReserveSubunits(
-                AllomanticFuel.STEEL
-        ) > 0L
-                && ScadrialPowerManager.canUseAllomanticFuel(
-                player,
-                AllomanticFuel.STEEL
-        )
-                && !(data.isBurning(AllomanticFuel.ALUMINIUM)
-                && data.getAllomanticReserveSubunits(
-                AllomanticFuel.ALUMINIUM
-        ) > 0
-                && ScadrialPowerManager.canUseAllomanticFuel(
-                player,
-                AllomanticFuel.ALUMINIUM
-        ))
-                && AllomancyBurnManager.effectiveStrength(player) > 0.0;
+                && data.isUsableAndBurning(AllomanticFuel.STEEL)
+                && !data.isUsableAndBurning(AllomanticFuel.ALUMINIUM)
+                && AllomancyBurnManager.effectiveStrength(player, data) > 0.0;
     }
 
     public static CoinProjectile shootForPush(
@@ -412,15 +397,11 @@ public final class AllomanticEquipment {
         ItemStack stack = contents.get(index);
         var data = ScadrialAttachments.get(player);
 
-        boolean duralumin = data.isBurning(AllomanticFuel.DURALUMIN)
-                && data.getAllomanticReserveSubunits(AllomanticFuel.DURALUMIN) > 0
-                && ScadrialPowerManager.canUseAllomanticFuel(
-                player,
-                AllomanticFuel.DURALUMIN
-        );
+        boolean duralumin =
+                data.isUsableAndBurning(AllomanticFuel.DURALUMIN);
 
         double strength = ExternalAllomancyMath.externalStrength(
-                AllomancyBurnManager.effectiveStrength(player),
+                AllomancyBurnManager.effectiveStrength(player, data),
                 duralumin
         );
 
