@@ -74,6 +74,15 @@ public final class ClientExternalAllomancy {
                 && ClientAllomancyBurnState.isBurning(AllomanticFuel.IRON);
 
         sendInput(minecraft, push, pull);
+
+        boolean aluminium = ClientAllomancyBurnState.isBurning(
+                AllomanticFuel.ALUMINIUM
+        );
+
+        AllomancyLoopSound.update(
+                push && !aluminium,
+                pull && !aluminium
+        );
     }
 
     private static void refreshContext(Minecraft minecraft) {
@@ -228,6 +237,8 @@ public final class ClientExternalAllomancy {
     }
 
     private static void clear() {
+        AllomancyLoopSound.clear();
+
         preview = MetalTarget.NONE;
         confirmed = null;
 
@@ -256,11 +267,11 @@ public final class ClientExternalAllomancy {
         public static void register(RegisterKeyMappingsEvent event) {
             pushKey = create(
                     "allomantic_push",
-                    InputConstants.KEY_G
+                    InputConstants.KEY_R
             );
             pullKey = create(
                     "allomantic_pull",
-                    InputConstants.KEY_H
+                    InputConstants.KEY_G
             );
 
             event.register(pushKey);

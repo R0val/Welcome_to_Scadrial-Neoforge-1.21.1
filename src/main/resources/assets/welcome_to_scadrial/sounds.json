@@ -1,0 +1,38 @@
+{
+  "push": {
+    "subtitle": "subtitles.welcome_to_scadrial.push",
+    "sounds": [
+      {
+        "name": "welcome_to_scadrial:push",
+        "preload": true
+      }
+    ]
+  },
+  "pull": {
+    "subtitle": "subtitles.welcome_to_scadrial.pull",
+    "sounds": [
+      {
+        "name": "welcome_to_scadrial:pull",
+        "preload": true
+      }
+    ]
+  },
+  "coinshot": {
+    "subtitle": "subtitles.welcome_to_scadrial.coinshot",
+    "sounds": [
+      {
+        "name": "welcome_to_scadrial:coinshot",
+        "preload": true
+      }
+    ]
+  },
+  "coin_collision": {
+    "subtitle": "subtitles.welcome_to_scadrial.coin_collision",
+    "sounds": [
+      {
+        "name": "welcome_to_scadrial:coin_collision",
+        "preload": true
+      }
+    ]
+  }
+}

@@ -101,3 +101,6 @@ reason="Welcome to Scadrial requires Cosmere API."
 # stop your mod loading on the server for example.
 #[features.${mod_id}]
 #openGLVersion="[3.2,)"
+
+[[mixins]]
+config="welcome_to_scadrial.mixins.json"

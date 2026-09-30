@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.rovalio.scadrialmod.commands.ScadrialInvestedArtCommands;
+import net.rovalio.scadrialmod.equipment.AllomanticEquipment;
 import net.rovalio.scadrialmod.item.ScadrialCreativeModeTabs;
 import net.rovalio.scadrialmod.item.ScadrialItems;
 import net.rovalio.scadrialmod.item.custom.ScadrialDataComponents;
@@ -13,6 +14,7 @@ import net.rovalio.scadrialmod.player.ScadrialAttachments;
 import net.rovalio.scadrialmod.player.ScadrialPlayerLifecycleHandler;
 import net.rovalio.scadrialmod.recipe.ScadrialRecipeSerializers;
 import net.rovalio.scadrialmod.registry.*;
+import net.rovalio.scadrialmod.sound.ScadrialSounds;
 import org.slf4j.Logger;
 
 /// Hi. If you understand this and the API yuno ball. I dunno
@@ -28,7 +30,12 @@ public final class ScadrialMod {
     public ScadrialMod(IEventBus modEventBus) {
 
         ScadrialDataComponents.register(modEventBus);
+
+        ScadrialSounds.register(modEventBus);
+
         ScadrialItems.register(modEventBus);
+        AllomanticEquipment.register(modEventBus);
+
         ScadrialCreativeModeTabs.register(modEventBus);
         ScadrialRecipeSerializers.register(modEventBus);
 

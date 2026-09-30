@@ -5,6 +5,7 @@ import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.rovalio.scadrialmod.equipment.EquipmentItem;
 import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.item.custom.AllomanticContainerItem;
 
@@ -444,6 +445,20 @@ public static final DeferredItem<AllomanticContainerItem> METAL_VIAL =
                             new Item.Properties()
                     ));
 
+    public static final DeferredItem<Item> COPPER_IMPERIAL = ITEMS.register("copper_imperial",
+            ()-> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> GOLD_IMPERIAL = ITEMS.register("gold_imperial",
+            ()-> new Item(new Item.Properties()));
+
+    public static final DeferredItem<Item> COIN_POUCH =
+            ITEMS.register("coin_pouch",
+                    () -> new EquipmentItem(new Item.Properties())
+            );
+
+    public static final DeferredItem<Item> ALLOMANCER_TOOLBELT =
+            ITEMS.register("allomancer_toolbelt",
+                    () -> new EquipmentItem(new Item.Properties())
+            );
 
     /// # FERUCHEMY
 

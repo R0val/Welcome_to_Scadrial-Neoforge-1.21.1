@@ -368,6 +368,8 @@
     "welcome_to_scadrial:atium_spike", "welcome_to_scadrial:lerasium_spike",
     "welcome_to_scadrial:armonium_spike", "welcome_to_scadrial:trellium_spike",
 
-    "welcome_to_scadrial:flask"
+    "welcome_to_scadrial:flask",
+    "welcome_to_scadrial:copper_imperial",
+    "welcome_to_scadrial:gold_imperial"
   ]
 }
