@@ -1,7 +1,10 @@
 package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -11,7 +14,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,6 +22,8 @@ import net.rovalio.scadrialmod.ScadrialMod;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.function.LongConsumer;
 
 public final class MetalSourceDetector {
 
@@ -58,12 +62,23 @@ public final class MetalSourceDetector {
             );
 
     private record BlockCandidate(
-            BlockPos position,
+            long position,
             double distanceSquared,
             int priority,
             double alignment
     ) {
     }
+
+    private static final Comparator<BlockCandidate> BLOCK_ORDER =
+            (first, second) -> compareCandidates(
+                    first.priority(),
+                    first.alignment(),
+                    first.distanceSquared(),
+                    first.position(),
+                    second
+            );
+
+    private static volatile Set<Block> detectableBlocks;
 
     private MetalSourceDetector() {
     }
@@ -162,121 +177,119 @@ public final class MetalSourceDetector {
                 player, radius, maxResults
         );
 
-        search.scan(player.serverLevel(), radius);
+        MetalBlockIndex.forEach(
+                player.serverLevel(),
+                search.chest,
+                radius,
+                search
+        );
+
         return search.results();
     }
 
-    private static final class BlockSearch {
+    private static final class BlockSearch implements LongConsumer {
 
         private final Vec3 chest;
         private final Vec3 eyes;
         private final Vec3 look;
-        private final BlockPos active;
+
+        private final boolean hasActive;
+        private final long active;
 
         private final double radiusSquared;
         private final int capacity;
 
         private BlockCandidate nearest;
 
-        private final Comparator<BlockCandidate> order =
-                Comparator.comparingInt(BlockCandidate::priority)
-                        .thenComparingDouble(candidate ->
-                                candidate.priority() == 1
-                                        ? -candidate.alignment()
-                                        : candidate.distanceSquared()
-                        )
-                        .thenComparingLong(candidate ->
-                                candidate.position().asLong()
-                        );
-
         private final PriorityQueue<BlockCandidate> candidates =
-                new PriorityQueue<>(order.reversed());
+                new PriorityQueue<>(BLOCK_ORDER.reversed());
 
         private BlockSearch(
                 ServerPlayer player,
                 double radius,
                 int capacity
         ) {
+            BlockPos activeBlock =
+                    ExternalAllomancyPhysics.selected(player).block();
+
             this.chest = chestPosition(player);
             this.eyes = player.getEyePosition();
             this.look = player.getLookAngle();
-            this.active = ExternalAllomancyPhysics.selected(player).block();
+            this.hasActive = activeBlock != null;
+            this.active = hasActive ? activeBlock.asLong() : 0L;
             this.radiusSquared = radius * radius;
             this.capacity = capacity;
         }
 
-        private void scan(ServerLevel level, double radius) {
-            int minX = chunkCoordinate(chest.x - radius);
-            int maxX = chunkCoordinate(chest.x + radius);
-            int minZ = chunkCoordinate(chest.z - radius);
-            int maxZ = chunkCoordinate(chest.z + radius);
+        @Override
+        public void accept(long position) {
+            double x = BlockPos.getX(position) + 0.5;
+            double y = BlockPos.getY(position) + 0.5;
+            double z = BlockPos.getZ(position) + 0.5;
 
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    LevelChunk chunk = level.getChunkSource()
-                            .getChunkNow(x, z);
-
-                    if (chunk != null) {
-                        chunk.findBlocks(
-                                MetalSourceDetector::isDetectableBlock,
-                                (position, state) -> accept(position)
-                        );
-                    }
-                }
-            }
-        }
-
-        private int chunkCoordinate(double coordinate) {
-            return SectionPos.blockToSectionCoord(
-                    (int) Math.floor(coordinate)
-            );
-        }
-
-        private void accept(BlockPos position) {
-            Vec3 center = Vec3.atCenterOf(position);
-            double distance = center.distanceToSqr(chest);
+            double dx = x - chest.x;
+            double dy = y - chest.y;
+            double dz = z - chest.z;
+            double distance = dx * dx + dy * dy + dz * dz;
 
             if (distance > radiusSquared) {
                 return;
             }
 
-            double alignment = MetalTargetSelector.alignment(
-                    eyes, look, center
-            );
+            double alignment = alignment(x, y, z);
 
-            int priority = priority(position, alignment);
+            int priority = hasActive && position == active
+                    ? 0
+                    : alignment >= MetalTargetSelector.ACQUIRE_COS
+                    ? 1
+                    : 2;
+
+            boolean closest = nearest == null
+                    || distance < nearest.distanceSquared();
+
+            if (!closest
+                    && candidates.size() == capacity
+                    && compareCandidates(
+                    priority,
+                    alignment,
+                    distance,
+                    position,
+                    candidates.peek()
+            ) >= 0) {
+                return;
+            }
 
             BlockCandidate candidate = new BlockCandidate(
-                    position.immutable(),
+                    position,
                     distance,
                     priority,
                     alignment
             );
 
-            if (nearest == null
-                    || distance < nearest.distanceSquared()) {
+            if (closest) {
                 nearest = candidate;
             }
 
             keep(candidate);
         }
 
-        private int priority(
-                BlockPos position,
-                double alignment
-        ) {
-            if (position.equals(active)) {
-                return 0;
+        private double alignment(double x, double y, double z) {
+            double ox = x - eyes.x;
+            double oy = y - eyes.y;
+            double oz = z - eyes.z;
+            double lengthSquared = ox * ox + oy * oy + oz * oz;
+
+            if (lengthSquared < 1.0E-10) {
+                return -1.0;
             }
 
-            return alignment >= MetalTargetSelector.ACQUIRE_COS
-                    ? 1
-                    : 2;
+            return (look.x * ox + look.y * oy + look.z * oz)
+                    / Math.sqrt(lengthSquared);
         }
 
         private void keep(BlockCandidate candidate) {
             if (candidates.size() == capacity) {
-                if (order.compare(candidate, candidates.peek()) >= 0) {
+                if (BLOCK_ORDER.compare(candidate, candidates.peek()) >= 0) {
                     return;
                 }
 
@@ -296,10 +309,36 @@ public final class MetalSourceDetector {
             }
 
             return candidates.stream()
-                    .sorted(order)
-                    .map(BlockCandidate::position)
+                    .mapToLong(BlockCandidate::position)
+                    .sorted()
+                    .mapToObj(BlockPos::of)
                     .toList();
         }
+    }
+
+    private static int compareCandidates(
+            int priority,
+            double alignment,
+            double distanceSquared,
+            long position,
+            BlockCandidate other
+    ) {
+        int byPriority = Integer.compare(priority, other.priority());
+
+        if (byPriority != 0) {
+            return byPriority;
+        }
+
+        double key = priority == 1 ? -alignment : distanceSquared;
+        double otherKey = other.priority() == 1
+                ? -other.alignment()
+                : other.distanceSquared();
+
+        int byKey = Double.compare(key, otherKey);
+
+        return byKey != 0
+                ? byKey
+                : Long.compare(position, other.position());
     }
 
     public static boolean isValidBlockTarget(
@@ -317,7 +356,31 @@ public final class MetalSourceDetector {
     }
 
     public static boolean isDetectableBlock(BlockState state) {
-        return state.is(TANGIBLE_BLOCKS) && !state.is(ALUMINIUM_BLOCKS);
+        return detectableBlocks().contains(state.getBlock());
+    }
+
+    public static Set<Block> detectableBlocks() {
+        Set<Block> blocks = detectableBlocks;
+
+        if (blocks == null) {
+            refreshDetectableBlocks();
+            blocks = detectableBlocks;
+        }
+
+        return blocks;
+    }
+
+    public static void refreshDetectableBlocks() {
+        Set<Block> blocks = new ReferenceOpenHashSet<>();
+
+        for (Holder<Block> holder
+                : BuiltInRegistries.BLOCK.getTagOrEmpty(TANGIBLE_BLOCKS)) {
+            if (!holder.is(ALUMINIUM_BLOCKS)) {
+                blocks.add(holder.value());
+            }
+        }
+
+        detectableBlocks = blocks;
     }
 
     private static boolean isDetectable(ItemEntity entity) {
