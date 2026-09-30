@@ -98,19 +98,11 @@ public final class MetalSourceRenderer {
                 minecraft, event, state, buffers
         );
 
-        for (var target : state.targets()) {
+        for (MetalTarget target : ClientMetalSources.targets()) {
             drawTarget(
                     minecraft.level,
                     context,
-                    MetalTarget.of(target)
-            );
-        }
-
-        for (var block : state.blocks()) {
-            drawTarget(
-                    minecraft.level,
-                    context,
-                    MetalTarget.of(block)
+                    target
             );
         }
 

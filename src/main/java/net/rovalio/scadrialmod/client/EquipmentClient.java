@@ -5,9 +5,12 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -32,6 +35,9 @@ public final class EquipmentClient {
 
     private static ClientLevel lastLevel;
     private static boolean pendingSelection;
+
+    private static ItemContainerContents cachedBeltContents;
+    private static NonNullList<ItemStack> cachedBeltItems;
 
     private EquipmentClient() {}
 
@@ -211,7 +217,24 @@ public final class EquipmentClient {
 
             pendingSelection = false;
             lastLevel = mc.level;
+
+            cachedBeltContents = null;
+            cachedBeltItems = null;
         }
+    }
+
+    private static NonNullList<ItemStack> beltItems(ItemStack belt) {
+        ItemContainerContents contents = belt.getOrDefault(
+                DataComponents.CONTAINER,
+                ItemContainerContents.EMPTY
+        );
+
+        if (contents != cachedBeltContents || cachedBeltItems == null) {
+            cachedBeltContents = contents;
+            cachedBeltItems = EquipmentStorage.read(belt);
+        }
+
+        return cachedBeltItems;
     }
 
     private static void renderHotbar(GuiGraphics graphics) {
@@ -229,7 +252,7 @@ public final class EquipmentClient {
             return;
         }
 
-        var contents = EquipmentStorage.read(
+        var contents = beltItems(
                 mc.player.getInventory().getItem(beltSlot)
         );
 

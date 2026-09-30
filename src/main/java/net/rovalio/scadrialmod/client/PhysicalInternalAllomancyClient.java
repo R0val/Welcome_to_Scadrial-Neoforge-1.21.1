@@ -54,6 +54,11 @@ public final class PhysicalInternalAllomancyClient {
     private static float mist;
     private static float zoom = 1.0F;
 
+    private static float nightVision;
+
+    private static double displayedDebt = Double.NaN;
+    private static Component debtText;
+
     private PhysicalInternalAllomancyClient() {
     }
 
@@ -101,17 +106,21 @@ public final class PhysicalInternalAllomancyClient {
     }
 
     public static float brightness(float original) {
-        Minecraft mc = Minecraft.getInstance();
+        float enhancement = nightVision;
 
+        return enhancement <= 0.0F
+                ? original
+                : Mth.lerp(enhancement, original, 1.0F);
+    }
+
+    private static float computeNightVision(Minecraft mc) {
         if (mc.player == null || visionImpaired()) {
-            return original;
+            return 0.0F;
         }
 
-        float enhancement = (float) PhysicalInternalAllomancyMath.nightVision(
+        return (float) PhysicalInternalAllomancyMath.nightVision(
                 tinStrength()
         );
-
-        return Mth.lerp(enhancement, original, 1.0F);
     }
 
     public static float soundGain() {
@@ -132,6 +141,8 @@ public final class PhysicalInternalAllomancyClient {
             lastLevel = mc.level;
             lastPlayer = mc.player;
         }
+
+        nightVision = computeNightVision(mc);
 
         if (mc.level == null || mc.player == null || mc.isPaused()) {
             return;
@@ -263,16 +274,7 @@ public final class PhysicalInternalAllomancyClient {
             return;
         }
 
-        String amount = String.format(
-                Locale.ROOT,
-                "%.2f",
-                Math.ceil(debt * 100.0) / 100.0
-        );
-
-        var text = Component.translatable(
-                "hud.welcome_to_scadrial.pewter_debt",
-                amount
-        );
+        Component text = debtText(debt);
 
         int color = debt >= mc.player.getHealth()
                 ? 0xFFFF5555
@@ -298,6 +300,21 @@ public final class PhysicalInternalAllomancyClient {
         );
     }
 
+    private static Component debtText(double value) {
+        double rounded = Math.ceil(value * 100.0) / 100.0;
+
+        if (debtText == null || Double.compare(rounded, displayedDebt) != 0) {
+            displayedDebt = rounded;
+
+            debtText = Component.translatable(
+                    "hud.welcome_to_scadrial.pewter_debt",
+                    String.format(Locale.ROOT, "%.2f", rounded)
+            );
+        }
+
+        return debtText;
+    }
+
     private static void clear() {
         tin = 0.0;
         pewter = 0.0;
@@ -305,6 +322,7 @@ public final class PhysicalInternalAllomancyClient {
 
         mist = 0.0F;
         zoom = 1.0F;
+        nightVision = 0.0F;
 
         lastLevel = null;
         lastPlayer = null;
