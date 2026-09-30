@@ -25,7 +25,6 @@ import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.network.PhysicalInternalAllomancyNetworking;
 import net.rovalio.scadrialmod.player.ScadrialAttachments;
 import net.rovalio.scadrialmod.player.ScadrialPlayerData;
-import net.rovalio.scadrialmod.power.ScadrialPowerManager;
 import net.rovalio.scadrialmod.power.allomancy.AllomancyBurnManager;
 import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
 
@@ -54,26 +53,22 @@ public final class PhysicalInternalAllomancyManager {
             ServerPlayer player,
             AllomanticFuel fuel
     ) {
-        ScadrialPlayerData data = ScadrialAttachments.get(player);
-
-        if (!player.isAlive()
-                || player.isSpectator()
-                || !usable(player, data, fuel)
-                || usable(player, data, AllomanticFuel.ALUMINIUM)) {
-            return 0.0;
-        }
-
-        return AllomancyBurnManager.effectiveStrength(player);
+        return strength(player, ScadrialAttachments.get(player), fuel);
     }
 
-    private static boolean usable(
+    public static double strength(
             ServerPlayer player,
             ScadrialPlayerData data,
             AllomanticFuel fuel
     ) {
-        return data.isBurning(fuel)
-                && data.getAllomanticReserveSubunits(fuel) > 0
-                && ScadrialPowerManager.canUseAllomanticFuel(player, fuel);
+        if (!player.isAlive()
+                || player.isSpectator()
+                || !data.isUsableAndBurning(fuel)
+                || data.isUsableAndBurning(AllomanticFuel.ALUMINIUM)) {
+            return 0.0;
+        }
+
+        return AllomancyBurnManager.effectiveStrength(player, data);
     }
 
     public static double pushResistance(Entity entity) {
@@ -87,9 +82,24 @@ public final class PhysicalInternalAllomancyManager {
     }
 
     public static void refresh(ServerPlayer player) {
-        double strength = strength(player, AllomanticFuel.PEWTER);
+        ScadrialPlayerData data = ScadrialAttachments.get(player);
 
-        updateAttributes(player, strength);
+        refresh(
+                player,
+                data,
+                strength(player, data, AllomanticFuel.PEWTER)
+        );
+    }
+
+    private static void refresh(
+            ServerPlayer player,
+            ScadrialPlayerData data,
+            double strength
+    ) {
+        if (strength != 0.0 || data.getAppliedPewterStrength() != 0.0) {
+            updateAttributes(player, strength);
+            data.setAppliedPewterStrength(strength);
+        }
 
         if (strength == 0.0) {
             settleDebt(player);
@@ -97,10 +107,17 @@ public final class PhysicalInternalAllomancyManager {
     }
 
     public static void tick(ServerPlayer player) {
-        refresh(player);
-
         ScadrialPlayerData data = ScadrialAttachments.get(player);
-        double strength = strength(player, AllomanticFuel.PEWTER);
+
+        if (!data.hasAllomancy()
+                && data.getPewterDebt() <= 0.0
+                && data.getAppliedPewterStrength() == 0.0) {
+            return;
+        }
+
+        double strength = strength(player, data, AllomanticFuel.PEWTER);
+
+        refresh(player, data, strength);
 
         if (strength > 0.0 && data.getPewterDebt() > 0.0) {
             if (data.getPewterRecoveryDelay() > 0) {
