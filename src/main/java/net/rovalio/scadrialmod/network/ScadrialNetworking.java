@@ -63,7 +63,7 @@ public final class ScadrialNetworking {
     private static void registerPayloads(
             RegisterPayloadHandlersEvent event
     ) {
-        PayloadRegistrar registrar = event.registrar("2");
+        PayloadRegistrar registrar = event.registrar("3");
 
         registrar.playToClient(
                 SyncAllomancyStateS2CPayload.TYPE,

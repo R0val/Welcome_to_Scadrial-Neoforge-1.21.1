@@ -30,9 +30,9 @@ public record SyncMetalSourcesS2CPayload(
             Part part
     ) {
         private static final StreamCodec<ByteBuf, Part> PART_CODEC =
-                ByteBufCodecs.STRING_UTF8.map(
-                        Part::read,
-                        Part::serializedName
+                ByteBufCodecs.idMapper(
+                        Part::byId,
+                        Part::ordinal
                 );
 
         public static final StreamCodec<ByteBuf, Target> STREAM_CODEC =

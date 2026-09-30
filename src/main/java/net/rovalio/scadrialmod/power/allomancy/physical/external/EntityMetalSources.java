@@ -70,6 +70,14 @@ public final class EntityMetalSources {
             return serializedName;
         }
 
+        public static Part byId(int id) {
+            if (id < 0 || id >= PARTS.length) {
+                throw new IllegalArgumentException("Unknown metal source part id: " + id);
+            }
+
+            return PARTS[id];
+        }
+
         public static Part read(String name) {
             for (Part part : PARTS) {
                 if (part.serializedName().equals(name)) {
