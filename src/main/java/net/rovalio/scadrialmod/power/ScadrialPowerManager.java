@@ -152,10 +152,9 @@ public final class ScadrialPowerManager {
                 "Allomantic fuel cannot be null"
         );
 
-        return data.getAllomanticMetals()
-                .contains(
-                        fuel.getRequiredPower()
-                );
+        return data.hasAllomanticAccess(
+                fuel.getRequiredPower()
+        );
     }
 
     /**

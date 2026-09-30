@@ -177,8 +177,11 @@ public final class ScadrialPlayerData
     public static final long RESERVE_SUBUNITS_PER_UNIT =
             1_000L;
 
-    private final EnumMap<AllomanticFuel, Long> allomanticReserves =
-            new EnumMap<>(AllomanticFuel.class);
+    private static final AllomanticFuel[] FUELS =
+            AllomanticFuel.values();
+
+    private final long[] allomanticReserves =
+            new long[FUELS.length];
 
     private static final String TAG_BURNING_FUELS = "BurningFuels";
 
@@ -198,6 +201,11 @@ public final class ScadrialPlayerData
 
     private double pewterDebt;
     private int pewterRecoveryDelay;
+
+    private int usableFuelMask;
+    private boolean usableFuelMaskDirty = true;
+
+    private double appliedPewterStrength;
 
     public ScadrialPlayerData() {
         reset();
@@ -289,6 +297,8 @@ public final class ScadrialPlayerData
         allomancySnapped = snapped;
         allomancySnappingDamage =
                 preservedSnappingDamage;
+
+        invalidateUsableFuels();
     }
 
     public boolean hasAllomancy() {
@@ -313,6 +323,14 @@ public final class ScadrialPlayerData
 
     public Set<MetalType> getAllomanticMetals() {
         return allomancy.getMetals();
+    }
+
+    public boolean hasAllomanticAccess(MetalType metal) {
+        return switch (allomancy.profile()) {
+            case NONE -> false;
+            case SINGLE -> allomancy.metal() == metal;
+            case FULL -> metal != null;
+        };
     }
 
     public boolean isAllomancyStrengthInitialized() {
@@ -367,11 +385,15 @@ public final class ScadrialPlayerData
 
         allomancyStrengthInitialized = true;
         allomancyStrength = strength;
+
+        invalidateUsableFuels();
     }
 
     public void clearAllomancyStrengthInitialization() {
         allomancyStrengthInitialized = false;
         allomancyStrength = 0.0;
+
+        invalidateUsableFuels();
     }
 
     public boolean isAllomancySnapped() {
@@ -408,6 +430,8 @@ public final class ScadrialPlayerData
 
         allomancySnapped = true;
         allomancySnappingDamage = damage;
+
+        invalidateUsableFuels();
     }
 
     private static boolean isValidSnappingDamage(
@@ -497,7 +521,7 @@ public final class ScadrialPlayerData
                 "Allomantic fuel cannot be null"
         );
 
-        return allomanticReserves.getOrDefault(fuel, 0L);
+        return allomanticReserves[fuel.ordinal()];
     }
 
     public long getAllomanticReserveSpaceSubunits(
@@ -554,10 +578,12 @@ public final class ScadrialPlayerData
                 Math.min(amountSubunits, space);
 
         if (accepted > 0L) {
-            allomanticReserves.put(
-                    fuel,
-                    current + accepted
-            );
+            allomanticReserves[fuel.ordinal()] =
+                    current + accepted;
+
+            if (current == 0L) {
+                invalidateUsableFuels();
+            }
         }
 
         return accepted;
@@ -587,23 +613,33 @@ public final class ScadrialPlayerData
         long remaining =
                 current - consumed;
 
-        if (remaining == 0L) {
-            allomanticReserves.remove(fuel);
-        } else {
-            allomanticReserves.put(fuel, remaining);
+        allomanticReserves[fuel.ordinal()] = remaining;
+
+        if (remaining == 0L && current > 0L) {
+            invalidateUsableFuels();
         }
 
         return consumed;
     }
 
     public void clearAllomanticReserves() {
-        allomanticReserves.clear();
+        Arrays.fill(allomanticReserves, 0L);
+        invalidateUsableFuels();
     }
 
     public Map<AllomanticFuel, Long> getAllomanticReservesSubunits() {
-        return Collections.unmodifiableMap(
-                new EnumMap<>(allomanticReserves)
-        );
+        EnumMap<AllomanticFuel, Long> reserves =
+                new EnumMap<>(AllomanticFuel.class);
+
+        for (AllomanticFuel fuel : FUELS) {
+            long amount = allomanticReserves[fuel.ordinal()];
+
+            if (amount > 0L) {
+                reserves.put(fuel, amount);
+            }
+        }
+
+        return Collections.unmodifiableMap(reserves);
     }
 
     private static void requireNonNegativeReserveAmount(
@@ -622,15 +658,57 @@ public final class ScadrialPlayerData
     }
 
     public void setBurning(AllomanticFuel fuel, boolean burning) {
-        if (burning) {
-            burningFuels.add(fuel);
-        } else {
-            burningFuels.remove(fuel);
+        boolean changed = burning
+                ? burningFuels.add(fuel)
+                : burningFuels.remove(fuel);
+
+        if (changed) {
+            invalidateUsableFuels();
         }
     }
 
     public Set<AllomanticFuel> getBurningFuels() {
         return Collections.unmodifiableSet(EnumSet.copyOf(burningFuels));
+    }
+
+    public boolean hasBurningFuels() {
+        return !burningFuels.isEmpty();
+    }
+
+    public boolean isUsableAndBurning(AllomanticFuel fuel) {
+        return (usableFuelMask() & (1 << fuel.ordinal())) != 0;
+    }
+
+    private int usableFuelMask() {
+        if (usableFuelMaskDirty) {
+            int mask = 0;
+
+            if (canUseAllomancy()) {
+                for (AllomanticFuel fuel : burningFuels) {
+                    if (allomanticReserves[fuel.ordinal()] > 0L
+                            && hasAllomanticAccess(fuel.getRequiredPower())) {
+                        mask |= 1 << fuel.ordinal();
+                    }
+                }
+            }
+
+            usableFuelMask = mask;
+            usableFuelMaskDirty = false;
+        }
+
+        return usableFuelMask;
+    }
+
+    private void invalidateUsableFuels() {
+        usableFuelMaskDirty = true;
+    }
+
+    public double getAppliedPewterStrength() {
+        return appliedPewterStrength;
+    }
+
+    public void setAppliedPewterStrength(double strength) {
+        appliedPewterStrength = strength;
     }
 
     public double getPewterDebt() {
@@ -676,7 +754,9 @@ public final class ScadrialPlayerData
         allomancyStrength = 0.0;
 
         burningFuels.clear();
-        allomanticReserves.clear();
+        Arrays.fill(allomanticReserves, 0L);
+
+        invalidateUsableFuels();
     }
 
     @Override
@@ -694,13 +774,13 @@ public final class ScadrialPlayerData
         CompoundTag reservesTag =
                 new CompoundTag();
 
-        for (Map.Entry<AllomanticFuel, Long> entry
-                : allomanticReserves.entrySet()) {
+        for (AllomanticFuel fuel : FUELS) {
+            long amount = allomanticReserves[fuel.ordinal()];
 
-            if (entry.getValue() > 0L) {
+            if (amount > 0L) {
                 reservesTag.putLong(
-                        entry.getKey().getSerializedName(),
-                        entry.getValue()
+                        fuel.getSerializedName(),
+                        amount
                 );
             }
         }
@@ -876,6 +956,7 @@ public final class ScadrialPlayerData
         }
 
         powerAssignmentComplete = true;
+        invalidateUsableFuels();
 
         if (rootTag.contains(TAG_BURNING_FUELS, Tag.TAG_LIST)) {
             ListTag burningTag = rootTag.getList(
@@ -1054,10 +1135,7 @@ public final class ScadrialPlayerData
                     reservesTag.getLong(serializedName);
 
             if (amount > 0L) {
-                allomanticReserves.put(
-                        fuel.get(),
-                        amount
-                );
+                allomanticReserves[fuel.get().ordinal()] = amount;
             }
         }
     }
