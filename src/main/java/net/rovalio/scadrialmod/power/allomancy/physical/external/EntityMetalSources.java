@@ -22,6 +22,7 @@ import net.minecraft.world.item.armortrim.ArmorTrim;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.rovalio.scadrialmod.ScadrialMod;
+import net.rovalio.scadrialmod.network.SyncMetalSourcesS2CPayload;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -190,119 +191,186 @@ public final class EntityMetalSources {
         }
 
         Vec3 chest = MetalSourceDetector.chestPosition(player);
-        List<Source> found = collectSources(player, chest, radius);
+        Vec3 eyes = player.getEyePosition();
+        Vec3 look = player.getLookAngle();
 
-        Source nearest = found.stream()
-                .min(Comparator.comparingDouble(source ->
-                        source.position(1.0F).distanceToSqr(chest)
-                ))
-                .orElse(null);
+        List<RankedSource> found =
+                collectSources(player, chest, eyes, look, radius);
 
-        found.sort(sourceOrder(player, chest, nearest));
+        if (found.isEmpty()) {
+            return List.of();
+        }
 
-        return List.copyOf(
-                found.subList(
-                        0,
-                        Math.min(found.size(), maxResults)
-                )
-        );
+        RankedSource nearest = found.get(0);
+
+        for (RankedSource candidate : found) {
+            if (candidate.distanceSquared() < nearest.distanceSquared()) {
+                nearest = candidate;
+            }
+        }
+
+        var selected = ExternalAllomancyPhysics.selected(player).entityTarget();
+
+        for (RankedSource candidate : found) {
+            candidate.rank(selected, nearest);
+        }
+
+        found.sort(RANKED_ORDER);
+
+        int size = Math.min(found.size(), maxResults);
+        List<Source> result = new ArrayList<>(size);
+
+        for (int i = 0; i < size; i++) {
+            result.add(found.get(i).source());
+        }
+
+        return List.copyOf(result);
     }
 
-    private static List<Source> collectSources(
+    private static final Part[] LIVING_PARTS = {
+            Part.BODY,
+            Part.MAIN_HAND,
+            Part.OFF_HAND,
+            Part.HEAD,
+            Part.CHEST,
+            Part.LEGS,
+            Part.FEET,
+            Part.ANIMAL_ARMOR
+    };
+
+    private static final Part[] BODY_PARTS = {Part.BODY};
+    private static final Part[] DROPPED_ITEM_PARTS = {Part.BODY, Part.DROPPED_ITEM};
+    private static final Part[] FRAME_ITEM_PARTS = {Part.BODY, Part.FRAME_ITEM};
+    private static final Part[] PROJECTILE_ITEM_PARTS = {Part.BODY, Part.PROJECTILE_ITEM};
+    private static final Part[] FALLING_BLOCK_PARTS = {Part.BODY, Part.FALLING_BLOCK};
+
+    private static final Comparator<RankedSource> RANKED_ORDER =
+            Comparator.comparingInt(RankedSource::priority)
+                    .thenComparingDouble(RankedSource::orderKey)
+                    .thenComparingInt(ranked -> ranked.source().entity().getId())
+                    .thenComparingInt(ranked -> ranked.source().part().ordinal());
+
+    private static final class RankedSource {
+
+        private final Source source;
+        private final double distanceSquared;
+        private final double alignment;
+        private int priority;
+
+        private RankedSource(
+                Source source,
+                double distanceSquared,
+                double alignment
+        ) {
+            this.source = source;
+            this.distanceSquared = distanceSquared;
+            this.alignment = alignment;
+        }
+
+        private Source source() {
+            return source;
+        }
+
+        private double distanceSquared() {
+            return distanceSquared;
+        }
+
+        private int priority() {
+            return priority;
+        }
+
+        private boolean aligned() {
+            return alignment >= MetalTargetSelector.ACQUIRE_COS;
+        }
+
+        private double orderKey() {
+            return aligned() ? -alignment : distanceSquared;
+        }
+
+        private void rank(
+                SyncMetalSourcesS2CPayload.Target selected,
+                RankedSource nearest
+        ) {
+            if (selected != null
+                    && selected.part() == source.part()
+                    && selected.uuid().equals(source.entity().getUUID())) {
+                priority = 0;
+            } else if (this == nearest) {
+                priority = 1;
+            } else {
+                priority = aligned() ? 2 : 3;
+            }
+        }
+    }
+
+    private static Part[] partsFor(Entity entity) {
+        if (entity instanceof LivingEntity) {
+            return LIVING_PARTS;
+        }
+
+        if (entity instanceof ItemEntity) {
+            return DROPPED_ITEM_PARTS;
+        }
+
+        if (entity instanceof ItemFrame) {
+            return FRAME_ITEM_PARTS;
+        }
+
+        if (entity instanceof AbstractArrow
+                || entity instanceof ThrowableItemProjectile) {
+            return PROJECTILE_ITEM_PARTS;
+        }
+
+        if (entity instanceof FallingBlockEntity) {
+            return FALLING_BLOCK_PARTS;
+        }
+
+        return BODY_PARTS;
+    }
+
+    private static List<RankedSource> collectSources(
             ServerPlayer player,
             Vec3 chest,
+            Vec3 eyes,
+            Vec3 look,
             double radius
     ) {
         AABB area = new AABB(chest, chest).inflate(radius);
-        List<Source> result = new ArrayList<>();
+        double radiusSquared = radius * radius;
+        Entity playerVehicle = player.getRootVehicle();
 
         List<Entity> entities = player.serverLevel().getEntities(
                 player,
                 area,
                 entity -> entity.isAlive()
                         && !entity.isSpectator()
-                        && entity.getRootVehicle() != player.getRootVehicle()
+                        && entity.getRootVehicle() != playerVehicle
         );
 
-        for (Entity entity : entities) {
-            for (Part part : PARTS) {
-                Source source = new Source(entity, part);
+        List<RankedSource> result = new ArrayList<>();
 
-                if (source.isValidFor(player, radius)) {
-                    result.add(source);
+        for (Entity entity : entities) {
+            for (Part part : partsFor(entity)) {
+                if (!isSource(entity, part)) {
+                    continue;
                 }
+
+                Vec3 point = position(entity, part, 1.0F);
+                double distanceSquared = point.distanceToSqr(chest);
+
+                if (distanceSquared > radiusSquared) {
+                    continue;
+                }
+
+                result.add(new RankedSource(
+                        new Source(entity, part),
+                        distanceSquared,
+                        MetalTargetSelector.alignment(eyes, look, point)
+                ));
             }
         }
 
         return result;
-    }
-
-    private static Comparator<Source> sourceOrder(
-            ServerPlayer player,
-            Vec3 chest,
-            Source nearest
-    ) {
-        MetalTarget selected = ExternalAllomancyPhysics.selected(player);
-        Vec3 eyes = player.getEyePosition();
-        Vec3 look = player.getLookAngle();
-
-        return Comparator
-                .comparingInt((Source source) ->
-                        sourcePriority(
-                                source,
-                                nearest,
-                                selected,
-                                eyes,
-                                look
-                        )
-                )
-                .thenComparingDouble(source -> {
-                    Vec3 point = source.position(1.0F);
-
-                    double alignment = MetalTargetSelector.alignment(
-                            eyes, look, point
-                    );
-
-                    return alignment >= MetalTargetSelector.ACQUIRE_COS
-                            ? -alignment
-                            : point.distanceToSqr(chest);
-                })
-                .thenComparingInt(source ->
-                        source.entity().getId()
-                )
-                .thenComparing(source ->
-                        source.part().serializedName()
-                );
-    }
-
-    private static int sourcePriority(
-            Source source,
-            Source nearest,
-            MetalTarget selected,
-            Vec3 eyes,
-            Vec3 look
-    ) {
-        var target = selected.entityTarget();
-
-        if (target != null
-                && target.uuid().equals(source.entity().getUUID())
-                && target.part() == source.part()) {
-            return 0;
-        }
-
-        if (source.equals(nearest)) {
-            return 1;
-        }
-
-        double alignment = MetalTargetSelector.alignment(
-                eyes,
-                look,
-                source.position(1.0F)
-        );
-
-        return alignment >= MetalTargetSelector.ACQUIRE_COS
-                ? 2
-                : 3;
     }
 
     public static Vec3 position(Entity entity, Part part, float partialTick) {
