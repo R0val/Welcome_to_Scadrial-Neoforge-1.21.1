@@ -17,7 +17,8 @@ import net.rovalio.scadrialmod.player.ScadrialPlayerData;
 import net.rovalio.scadrialmod.power.ScadrialPowerManager;
 import net.rovalio.scadrialmod.power.allomancy.AllomancyBurnManager;
 import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
-import net.rovalio.scadrialmod.power.allomancy.ExternalAllomancyPerception;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.ExternalAllomancyPerception;
+import net.rovalio.scadrialmod.power.allomancy.physical.internal.PhysicalInternalAllomancyManager;
 
 public final class ScadrialNetworking {
 
@@ -122,14 +123,20 @@ public final class ScadrialNetworking {
         ExternalAllomancyPerception.clear();
     }
 
-    private static void onPlayerTick(
-            PlayerTickEvent.Post event
-    ) {
+    private static void onPlayerTick(PlayerTickEvent.Post event) {
         AllomancyBurnManager.onPlayerTick(event);
+
+        if (event.getEntity() instanceof ServerPlayer player) {
+            PhysicalInternalAllomancyManager.tick(player);
+        }
+
         ExternalAllomancyPerception.onPlayerTick(event);
     }
 
     public static void sync(ServerPlayer player) {
+        PhysicalInternalAllomancyManager.refresh(player);
+        PhysicalInternalAllomancyNetworking.sync(player);
+
         ScadrialPlayerData data = ScadrialAttachments.get(player);
 
         PacketDistributor.sendToPlayer(

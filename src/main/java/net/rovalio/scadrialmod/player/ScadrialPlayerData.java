@@ -8,6 +8,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.util.StringRepresentable;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
+import net.rovalio.scadrialmod.power.allomancy.physical.internal.PhysicalInternalAllomancyMath;
 import net.rovalio.scadrialmod.power.MetalType;
 
 import java.util.*;
@@ -194,6 +195,9 @@ public final class ScadrialPlayerData
 
     private boolean allomancySnapped;
     private double allomancySnappingDamage;
+
+    private double pewterDebt;
+    private int pewterRecoveryDelay;
 
     public ScadrialPlayerData() {
         reset();
@@ -596,8 +600,7 @@ public final class ScadrialPlayerData
         allomanticReserves.clear();
     }
 
-    public Map<AllomanticFuel, Long>
-    getAllomanticReservesSubunits() {
+    public Map<AllomanticFuel, Long> getAllomanticReservesSubunits() {
         return Collections.unmodifiableMap(
                 new EnumMap<>(allomanticReserves)
         );
@@ -630,7 +633,34 @@ public final class ScadrialPlayerData
         return Collections.unmodifiableSet(EnumSet.copyOf(burningFuels));
     }
 
+    public double getPewterDebt() {
+        return pewterDebt;
+    }
+
+    public void setPewterDebt(double value) {
+        pewterDebt = Double.isFinite(value)
+                ? Math.max(
+                0.0,
+                Math.min(
+                        PhysicalInternalAllomancyMath.MAX_PEWTER_DEBT,
+                        value
+                )
+        )
+                : 0.0;
+    }
+
+    public int getPewterRecoveryDelay() {
+        return pewterRecoveryDelay;
+    }
+
+    public void setPewterRecoveryDelay(int ticks) {
+        pewterRecoveryDelay = Math.max(0, ticks);
+    }
+
     public void reset() {
+        pewterDebt = 0.0;
+        pewterRecoveryDelay = 0;
+
         powerAssignmentComplete = false;
 
         allomancy =
@@ -724,8 +754,8 @@ public final class ScadrialPlayerData
 
         rootTag.put(TAG_BURNING_FUELS, burningTag);
 
-
-
+        rootTag.putDouble("PewterDebt", pewterDebt);
+        rootTag.putInt("PewterRecoveryDelay", pewterRecoveryDelay);
 
         return rootTag;
     }
@@ -740,6 +770,9 @@ public final class ScadrialPlayerData
         if (rootTag == null) {
             return;
         }
+
+        setPewterDebt(rootTag.getDouble("PewterDebt"));
+        setPewterRecoveryDelay(rootTag.getInt("PewterRecoveryDelay"));
 
         loadAllomanticReserves(rootTag);
 
