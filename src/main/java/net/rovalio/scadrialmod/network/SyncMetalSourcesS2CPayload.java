@@ -7,7 +7,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.rovalio.scadrialmod.power.allomancy.EntityMetalSources.Part;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.EntityMetalSources.Part;
 import net.rovalio.scadrialmod.ScadrialMod;
 
 import java.util.List;

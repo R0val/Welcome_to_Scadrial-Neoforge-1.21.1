@@ -19,7 +19,7 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.network.SyncMetalSourcesS2CPayload;
 import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
-import net.rovalio.scadrialmod.power.allomancy.MetalTarget;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.MetalTarget;
 
 import java.util.OptionalDouble;
 

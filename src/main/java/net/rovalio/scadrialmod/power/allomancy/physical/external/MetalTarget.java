@@ -1,4 +1,4 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;

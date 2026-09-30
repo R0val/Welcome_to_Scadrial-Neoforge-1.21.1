@@ -1,4 +1,4 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -51,6 +51,18 @@ public final class MetalSourceProperties {
         registerVanillaItem("spectral_arrow", 1.0);
         registerVanillaItem("tipped_arrow", 0.05);
         registerVanillaItem("shield", 5.0);
+
+        registerItemMass(ResourceLocation.fromNamespaceAndPath(
+                        "welcome_to_scadrial",
+                        "copper_imperial"
+                ), 0.011
+        );
+
+        registerItemMass(ResourceLocation.fromNamespaceAndPath(
+                        "welcome_to_scadrial",
+                        "gold_imperial.json"
+                ), 0.022
+        );
 
         registerEntityMass(
                 ResourceLocation.withDefaultNamespace("iron_golem"),
@@ -230,7 +242,9 @@ public final class MetalSourceProperties {
                     EntityMetalSources.Part.PROJECTILE_ITEM
             );
 
-            return Math.max(0.05, stackMass(stack));
+            return stack.isEmpty()
+                    ? 0.05
+                    : Math.max(0.0001, stackMass(stack));
         }
 
         ResourceLocation id =

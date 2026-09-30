@@ -1,9 +1,10 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -14,10 +15,15 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.rovalio.scadrialmod.ScadrialMod;
+import net.rovalio.scadrialmod.entity.CoinProjectile;
+import net.rovalio.scadrialmod.equipment.AllomanticEquipment;
 import net.rovalio.scadrialmod.network.ExternalAllomancyNetworking;
 import net.rovalio.scadrialmod.network.SyncMetalSourcesS2CPayload;
 import net.rovalio.scadrialmod.player.ScadrialAttachments;
 import net.rovalio.scadrialmod.player.ScadrialPlayerData;
+import net.rovalio.scadrialmod.power.allomancy.AllomancyBurnManager;
+import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
+import net.rovalio.scadrialmod.power.allomancy.physical.internal.PhysicalInternalAllomancyManager;
 import net.rovalio.scadrialmod.power.ScadrialPowerManager;
 
 import java.util.HashMap;
@@ -58,6 +64,10 @@ public final class ExternalAllomancyPhysics {
 
         private boolean push;
         private boolean pull;
+
+        private boolean pushHandled;
+        private MetalTarget shotTarget = MetalTarget.NONE;
+        private MetalTarget pullTarget = MetalTarget.NONE;
 
         private int pushTicks;
         private int pullTicks;
@@ -139,11 +149,14 @@ public final class ExternalAllomancyPhysics {
         action.pull = input.pull();
 
         if (!action.push) {
+            action.pushHandled = false;
+            action.shotTarget = MetalTarget.NONE;
             action.pushTicks = 0;
         }
 
         if (!action.pull) {
             action.pullTicks = 0;
+            action.pullTarget = MetalTarget.NONE;
         }
     }
 
@@ -152,6 +165,8 @@ public final class ExternalAllomancyPhysics {
         if (!(event.getLevel() instanceof ServerLevel level)) {
             return;
         }
+
+        AllomanticProjectileRecovery.beginTick(level);
 
         ImpulseBatch batch = new ImpulseBatch();
 
@@ -164,6 +179,8 @@ public final class ExternalAllomancyPhysics {
         }
 
         batch.apply();
+
+        AllomanticProjectileRecovery.finishTick(level);
     }
 
     private static void collect(
@@ -188,12 +205,11 @@ public final class ExternalAllomancyPhysics {
             return;
         }
 
-        action.target = selectTarget(
-                player,
-                action.target,
-                power.radius()
-        );
+        if (tryShootCoin(player, action, power)) {
+            return;
+        }
 
+        action.target = selectActionTarget(player, action, power);
         action.advance(power.push(), power.pull());
 
         sendSelection(
@@ -204,13 +220,80 @@ public final class ExternalAllomancyPhysics {
         );
 
         if (!action.target.isNone()) {
-            accumulateInteraction(
-                    player,
-                    action,
-                    power,
-                    batch
-            );
+            accumulateInteraction(player, action, power, batch);
         }
+    }
+
+    private static boolean tryShootCoin(
+            ServerPlayer player,
+            Action action,
+            PowerUse power
+    ) {
+        if (!power.push() || power.pull() || action.pushHandled) {
+            return false;
+        }
+
+        action.pushHandled = true;
+
+        CoinProjectile coin = AllomanticEquipment.shootForPush(
+                player,
+                power.radius()
+        );
+
+        if (coin == null) {
+            return false;
+        }
+
+        action.shotTarget = MetalTarget.of(
+                new SyncMetalSourcesS2CPayload.Target(
+                        coin.getId(),
+                        coin.getUUID(),
+                        EntityMetalSources.Part.PROJECTILE_ITEM
+                )
+        );
+
+        action.target = action.shotTarget;
+        action.advance(false, false);
+
+        ExternalAllomancyPerception.sync(player);
+        sendSelection(player, action, true, false);
+
+        // El lanzamiento ya aporta la velocidad completa en este tick.
+        return true;
+    }
+
+    private static MetalTarget selectActionTarget(
+            ServerPlayer player,
+            Action action,
+            PowerUse power
+    ) {
+        MetalTarget locked = power.push()
+                ? action.shotTarget
+                : power.pull()
+                ? action.pullTarget
+                : MetalTarget.NONE;
+
+        if (!locked.isNone()) {
+            return locked.validFor(player, power.radius())
+                    ? locked
+                    : MetalTarget.NONE;
+        }
+
+        MetalTarget target = selectTarget(
+                player,
+                action.target,
+                power.radius()
+        );
+
+        if (power.pull()
+                && !power.push()
+                && AllomanticProjectileRecovery.canRecover(
+                target.entity(player.level())
+        )) {
+            action.pullTarget = target;
+        }
+
+        return target;
     }
 
     private static boolean validInput(
@@ -321,18 +404,32 @@ public final class ExternalAllomancyPhysics {
             PowerUse power,
             ImpulseBatch batch
     ) {
+        boolean immediate =
+                action.target.entity(player.level()) instanceof CoinProjectile;
+
         double signedAmount = burnAmount(
                 power,
                 AllomanticFuel.STEEL,
-                action.pushTicks
+                action.pushTicks,
+                immediate
         ) - burnAmount(
                 power,
                 AllomanticFuel.IRON,
-                action.pullTicks
+                action.pullTicks,
+                immediate
         );
 
         if (Math.abs(signedAmount) < EPSILON) {
             return;
+        }
+
+        if (signedAmount < 0.0) {
+            // Permite recoger también dentro de MIN_TARGET_DISTANCE.
+            AllomanticProjectileRecovery.markPulled(
+                    player,
+                    action.target.entity(player.level()),
+                    0.0
+            );
         }
 
         Interaction interaction = resolveInteraction(
@@ -353,6 +450,16 @@ public final class ExternalAllomancyPhysics {
         ) * Math.abs(signedAmount);
 
         double strength = physicalStrength(power);
+
+        if (signedAmount < 0.0
+                && force > EPSILON
+                && interaction.sourceDirection().lengthSqr() > EPSILON) {
+            AllomanticProjectileRecovery.markPulled(
+                    player,
+                    interaction.source(),
+                    force
+            );
+        }
 
         batch.add(
                 interaction.caster(),
@@ -419,7 +526,17 @@ public final class ExternalAllomancyPhysics {
         Vec3 sourceDirection = Vec3.ZERO;
 
         if (source != null && !MetalSourceProperties.fixed(source)) {
-            sourceDirection = freeDirection(source, direction);
+            if (AllomanticProjectiles.embedded(source)) {
+                if (signedAmount < 0.0
+                        && AllomanticProjectiles.releasePosition(
+                        source,
+                        direction
+                ) != null) {
+                    sourceDirection = direction;
+                }
+            } else {
+                sourceDirection = freeDirection(source, direction);
+            }
         }
 
         return new Interaction(
@@ -453,11 +570,15 @@ public final class ExternalAllomancyPhysics {
         );
 
         if (interaction.source() != null) {
+            double sourceAcceleration = interaction.source() instanceof Projectile
+                    ? ExternalAllomancyMath.projectileAccelerationLimit(strength)
+                    : acceleration;
+
             force = limitForce(
                     force,
                     interaction.source(),
                     interaction.sourceDirection(),
-                    acceleration
+                    sourceAcceleration
             );
         }
 
@@ -477,14 +598,20 @@ public final class ExternalAllomancyPhysics {
                         RESISTANCE_SCALE
                 );
 
-        // La atenuación se aplica después del límite mecánico.
-        return force * distanceFactor * resistance;
+        double pewterResistance =
+                PhysicalInternalAllomancyManager.pushResistance(interaction.source());
+
+        return force
+                * distanceFactor
+                * resistance
+                * (1.0 - pewterResistance);
     }
 
     private static double burnAmount(
             PowerUse power,
             AllomanticFuel fuel,
-            int heldTicks
+            int heldTicks,
+            boolean immediate
     ) {
         long available = power.data()
                 .getAllomanticReserveSubunits(fuel);
@@ -494,7 +621,9 @@ public final class ExternalAllomancyPhysics {
                 power.duralumin()
         );
 
-        int rampTicks = power.duralumin()
+        int rampTicks = immediate
+                ? 1
+                : power.duralumin()
                 ? DURALUMIN_RAMP_TICKS
                 : RAMP_TICKS;
 
@@ -618,8 +747,9 @@ public final class ExternalAllomancyPhysics {
         ) {
             double strength = strengths.get(entity);
 
-            double acceleration =
-                    ExternalAllomancyMath.accelerationLimit(strength);
+            double acceleration = entity instanceof Projectile
+                    ? ExternalAllomancyMath.projectileAccelerationLimit(strength)
+                    : ExternalAllomancyMath.accelerationLimit(strength);
 
             double length = delta.length();
 
@@ -629,17 +759,18 @@ public final class ExternalAllomancyPhysics {
 
             Vec3 velocity = velocity(entity);
 
+            double speedLimit = entity instanceof Projectile
+                    ? ExternalAllomancyMath.projectileSpeedLimit(strength)
+                    : ExternalAllomancyMath.poweredSpeedLimit(strength);
+
             double speedScale = ExternalAllomancyMath.speedScale(
                     velocity.lengthSqr(),
                     velocity.dot(delta),
                     delta.lengthSqr(),
-                    ExternalAllomancyMath.poweredSpeedLimit(strength)
+                    speedLimit
             );
 
-            return Math.min(
-                    accelerationScale,
-                    speedScale
-            );
+            return Math.min(accelerationScale, speedScale);
         }
 
         private void apply() {
@@ -690,12 +821,18 @@ public final class ExternalAllomancyPhysics {
             return;
         }
 
+        if (!AllomanticProjectiles.release(entity, delta)) {
+            return;
+        }
+
         entity.setDeltaMovement(
                 entity.getDeltaMovement().add(delta)
         );
 
         entity.hasImpulse = true;
         entity.hurtMarked = true;
+
+        AllomanticProjectiles.syncLater(entity);
     }
 
     private static void applyPlayerImpulse(
@@ -804,6 +941,10 @@ public final class ExternalAllomancyPhysics {
     }
 
     private static Vec3 velocity(Entity entity) {
+        if (AllomanticProjectiles.embedded(entity)) {
+            return Vec3.ZERO;
+        }
+
         Motion motion = MOTION.get(entity.getUUID());
 
         if (entity instanceof ServerPlayer && motion != null) {

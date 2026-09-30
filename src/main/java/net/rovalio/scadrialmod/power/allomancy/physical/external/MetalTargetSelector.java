@@ -1,5 +1,6 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -64,12 +65,15 @@ public final class MetalTargetSelector {
         );
 
         Candidate aimed = null;
-        Candidate nearest = null;
+        // Candidate nearest = null;
         Candidate retained = null;
 
         for (MetalTarget target : candidates(sources, previous)) {
             Candidate candidate = inspect(
-                    player, target, chest, sources.radius()
+                    player,
+                    target,
+                    chest,
+                    sources.radius()
             );
 
             if (candidate == null) {
@@ -80,10 +84,11 @@ public final class MetalTargetSelector {
                 retained = candidate;
             }
 
-            if (nearest == null
-                    || candidate.distanceSquared() < nearest.distanceSquared()) {
-                nearest = candidate;
-            }
+            // Experimental: nearest-source fallback is disabled.
+            // if (nearest == null
+            //         || candidate.distanceSquared() < nearest.distanceSquared()) {
+            //     nearest = candidate;
+            // }
 
             if (betterAim(candidate, aimed)) {
                 aimed = candidate;
@@ -98,7 +103,39 @@ public final class MetalTargetSelector {
             return aimed.target();
         }
 
-        return nearest == null ? MetalTarget.NONE : nearest.target();
+        // return nearest == null ? MetalTarget.NONE : nearest.target();
+        return MetalTarget.NONE;
+    }
+
+    public static boolean hasAimedTarget(
+            ServerPlayer player,
+            SyncMetalSourcesS2CPayload sources,
+            double radius
+    ) {
+        if (sources == null
+                || !sources.dimension().equals(
+                player.level().dimension().location()
+        )) {
+            return false;
+        }
+
+        Vec3 eyes = player.getEyePosition();
+        Vec3 look = player.getLookAngle();
+
+        for (MetalTarget target : candidates(sources, MetalTarget.NONE)) {
+            if (!target.validFor(player, radius)) {
+                continue;
+            }
+
+            Vec3 position = target.position(player.level(), 1.0F);
+
+            if (position != null
+                    && alignment(eyes, look, position) >= ACQUIRE_COS) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static List<MetalTarget> candidates(

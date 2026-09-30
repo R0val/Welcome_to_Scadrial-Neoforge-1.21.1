@@ -1,4 +1,4 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.core.component.DataComponentType;

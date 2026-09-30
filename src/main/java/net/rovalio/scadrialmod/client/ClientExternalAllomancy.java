@@ -17,9 +17,9 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.network.ExternalAllomancyNetworking;
 import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
-import net.rovalio.scadrialmod.power.allomancy.ExternalAllomancyMath;
-import net.rovalio.scadrialmod.power.allomancy.MetalTarget;
-import net.rovalio.scadrialmod.power.allomancy.MetalTargetSelector;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.ExternalAllomancyMath;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.MetalTarget;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.MetalTargetSelector;
 
 @EventBusSubscriber(modid = ScadrialMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientExternalAllomancy {

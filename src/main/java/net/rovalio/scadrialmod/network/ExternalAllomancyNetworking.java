@@ -12,8 +12,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.client.ClientExternalAllomancy;
-import net.rovalio.scadrialmod.power.allomancy.ExternalAllomancyPhysics;
-import net.rovalio.scadrialmod.power.allomancy.MetalTarget;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.ExternalAllomancyPhysics;
+import net.rovalio.scadrialmod.power.allomancy.physical.external.MetalTarget;
 
 import java.util.UUID;
 

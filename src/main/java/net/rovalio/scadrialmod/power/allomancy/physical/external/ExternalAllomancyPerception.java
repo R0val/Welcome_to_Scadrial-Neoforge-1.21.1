@@ -1,4 +1,4 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -11,6 +11,8 @@ import net.rovalio.scadrialmod.network.SyncMetalSourcesS2CPayload.Target;
 import net.rovalio.scadrialmod.player.ScadrialAttachments;
 import net.rovalio.scadrialmod.player.ScadrialPlayerData;
 import net.rovalio.scadrialmod.power.ScadrialPowerManager;
+import net.rovalio.scadrialmod.power.allomancy.AllomancyBurnManager;
+import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
 
 import java.util.Comparator;
 import java.util.HashMap;

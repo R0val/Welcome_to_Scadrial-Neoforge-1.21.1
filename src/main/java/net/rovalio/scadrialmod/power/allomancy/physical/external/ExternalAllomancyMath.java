@@ -1,4 +1,4 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
 public final class ExternalAllomancyMath {
 
@@ -15,6 +15,9 @@ public final class ExternalAllomancyMath {
     private static final double MAX_ACCELERATION = 8.0;
     private static final double MAX_POWERED_SPEED = 8.0;
     private static final double MAX_STRENGTH_FACTOR = 1.0E6;
+
+    public static final double PROJECTILE_SPEED_MULTIPLIER = 4.0;
+    public static final double PROJECTILE_ACCELERATION_MULTIPLIER = 4.0;
 
     private ExternalAllomancyMath() {
     }
@@ -142,6 +145,14 @@ public final class ExternalAllomancyMath {
         }
 
         return Math.min(force, accelerationLimit * mass / freedom);
+    }
+
+    public static double projectileSpeedLimit(double strength) {
+        return poweredSpeedLimit(strength) * PROJECTILE_SPEED_MULTIPLIER;
+    }
+
+    public static double projectileAccelerationLimit(double strength) {
+        return accelerationLimit(strength) * PROJECTILE_ACCELERATION_MULTIPLIER;
     }
 
     public static double speedScale(

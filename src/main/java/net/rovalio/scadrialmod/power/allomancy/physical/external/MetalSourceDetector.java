@@ -1,4 +1,4 @@
-package net.rovalio.scadrialmod.power.allomancy;
+package net.rovalio.scadrialmod.power.allomancy.physical.external;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
