@@ -260,7 +260,7 @@ public final class AllomanticContainerItem extends Item {
             result = stack;
         }
 
-        ScadrialNetworking.sync(player);
+        ScadrialNetworking.syncAllomancy(player);
         return result;
     }
 
@@ -334,7 +334,7 @@ public final class AllomanticContainerItem extends Item {
             }
         }
 
-        ScadrialNetworking.sync(player);
+        ScadrialNetworking.syncAllomancy(player);
     }
 
     @Override

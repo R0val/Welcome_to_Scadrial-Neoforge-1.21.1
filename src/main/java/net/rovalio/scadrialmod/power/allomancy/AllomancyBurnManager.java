@@ -14,6 +14,8 @@ public final class AllomancyBurnManager {
     public static final long DURALUMIN_CONSUMPTION_MULTIPLIER = 64L;
     public static final double DURALUMIN_STRENGTH_MULTIPLIER = 4.0;
 
+    private static final AllomanticFuel[] FUELS = AllomanticFuel.values();
+
     private AllomancyBurnManager() {
     }
 
@@ -64,19 +66,22 @@ public final class AllomancyBurnManager {
     }
 
     public static double effectiveStrength(ServerPlayer player) {
-        ScadrialPlayerData data = ScadrialAttachments.get(player);
+        return effectiveStrength(player, ScadrialAttachments.get(player));
+    }
 
+    public static double effectiveStrength(
+            ServerPlayer player,
+            ScadrialPlayerData data
+    ) {
         if (!player.isAlive()
                 || player.isSpectator()
                 || !data.canUseAllomancy()) {
             return 0.0;
         }
 
-        boolean duraluminActive = isUsableAndBurning(
-                player, data, AllomanticFuel.DURALUMIN
-        ) && !isUsableAndBurning(
-                player, data, AllomanticFuel.ALUMINIUM
-        );
+        boolean duraluminActive =
+                data.isUsableAndBurning(AllomanticFuel.DURALUMIN)
+                        && !data.isUsableAndBurning(AllomanticFuel.ALUMINIUM);
 
         return effectiveStrength(
                 data.getAllomancyStrength(),
@@ -113,8 +118,7 @@ public final class AllomancyBurnManager {
             data.setBurning(fuel, true);
         }
 
-        // El aluminio actúa inmediatamente al encenderlo.
-        if (isUsableAndBurning(player, data, AllomanticFuel.ALUMINIUM)) {
+        if (data.isUsableAndBurning(AllomanticFuel.ALUMINIUM)) {
             applyAluminium(data);
         }
 
@@ -128,23 +132,21 @@ public final class AllomancyBurnManager {
 
         ScadrialPlayerData data = ScadrialAttachments.get(player);
 
-        if (data.getBurningFuels().isEmpty()) {
+        if (!data.hasBurningFuels()) {
             return;
         }
 
         boolean changed = false;
+        boolean active = player.isAlive() && !player.isSpectator();
 
-        // Validate every metal before starting its effects
-        for (AllomanticFuel fuel : data.getBurningFuels()) {
-            if (!player.isAlive()
-                    || player.isSpectator()
-                    || !isUsableAndBurning(player, data, fuel)) {
+        for (AllomanticFuel fuel : FUELS) {
+            if (data.isBurning(fuel)
+                    && (!active || !data.isUsableAndBurning(fuel))) {
                 data.setBurning(fuel, false);
                 changed = true;
             }
         }
 
-        // Aluminium has priority over every metal
         if (data.isBurning(AllomanticFuel.ALUMINIUM)) {
             changed |= applyAluminium(data);
         }
@@ -152,7 +154,11 @@ public final class AllomancyBurnManager {
         boolean duraluminActive =
                 data.isBurning(AllomanticFuel.DURALUMIN);
 
-        for (AllomanticFuel fuel : data.getBurningFuels()) {
+        for (AllomanticFuel fuel : FUELS) {
+            if (!data.isBurning(fuel)) {
+                continue;
+            }
+
             long cost = burnSubunitsPerTick(
                     fuel,
                     duraluminActive
@@ -167,24 +173,14 @@ public final class AllomancyBurnManager {
         }
 
         if (changed || player.tickCount % 20 == 0) {
-            ScadrialNetworking.sync(player);
+            ScadrialNetworking.syncAllomancy(player);
         }
-    }
-
-    private static boolean isUsableAndBurning(
-            ServerPlayer player,
-            ScadrialPlayerData data,
-            AllomanticFuel fuel
-    ) {
-        return data.isBurning(fuel)
-                && data.getAllomanticReserveSubunits(fuel) > 0L
-                && ScadrialPowerManager.canUseAllomanticFuel(player, fuel);
     }
 
     private static boolean applyAluminium(ScadrialPlayerData data) {
         boolean changed = false;
 
-        for (AllomanticFuel fuel : AllomanticFuel.values()) {
+        for (AllomanticFuel fuel : FUELS) {
             if (fuel == AllomanticFuel.ALUMINIUM) {
                 continue;
             }

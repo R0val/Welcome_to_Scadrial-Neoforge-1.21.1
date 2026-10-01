@@ -49,9 +49,20 @@ public final class MetalTargetSelector {
             SyncMetalSourcesS2CPayload sources,
             MetalTarget previous
     ) {
+        return sources == null
+                ? MetalTarget.NONE
+                : select(player, sources, sources.radius(), previous);
+    }
+
+    public static MetalTarget select(
+            Player player,
+            SyncMetalSourcesS2CPayload sources,
+            double radius,
+            MetalTarget previous
+    ) {
         if (sources == null
-                || !Double.isFinite(sources.radius())
-                || sources.radius() <= 0.0
+                || !Double.isFinite(radius)
+                || radius <= 0.0
                 || !sources.dimension().equals(
                 player.level().dimension().location()
         )) {
@@ -64,6 +75,9 @@ public final class MetalTargetSelector {
                 0.0
         );
 
+        Vec3 eyes = player.getEyePosition();
+        Vec3 look = player.getLookAngle();
+
         Candidate aimed = null;
         // Candidate nearest = null;
         Candidate retained = null;
@@ -73,7 +87,9 @@ public final class MetalTargetSelector {
                     player,
                     target,
                     chest,
-                    sources.radius()
+                    eyes,
+                    look,
+                    radius
             );
 
             if (candidate == null) {
@@ -142,7 +158,9 @@ public final class MetalTargetSelector {
             SyncMetalSourcesS2CPayload sources,
             MetalTarget previous
     ) {
-        List<MetalTarget> result = new ArrayList<>();
+        List<MetalTarget> result = new ArrayList<>(
+                sources.targets().size() + sources.blocks().size() + 1
+        );
 
         sources.targets().forEach(
                 target -> result.add(MetalTarget.of(target))
@@ -164,6 +182,8 @@ public final class MetalTargetSelector {
             Player player,
             MetalTarget target,
             Vec3 chest,
+            Vec3 eyes,
+            Vec3 look,
             double radius
     ) {
         if (target.entityTarget() != null) {
@@ -190,11 +210,7 @@ public final class MetalTargetSelector {
         return new Candidate(
                 target,
                 distance,
-                alignment(
-                        player.getEyePosition(),
-                        player.getLookAngle(),
-                        point
-                )
+                alignment(eyes, look, point)
         );
     }
 

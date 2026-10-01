@@ -24,7 +24,6 @@ import net.rovalio.scadrialmod.player.ScadrialPlayerData;
 import net.rovalio.scadrialmod.power.allomancy.AllomancyBurnManager;
 import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
 import net.rovalio.scadrialmod.power.allomancy.physical.internal.PhysicalInternalAllomancyManager;
-import net.rovalio.scadrialmod.power.ScadrialPowerManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -91,12 +90,64 @@ public final class ExternalAllomancyPhysics {
         }
     }
 
-    private record Motion(
-            ResourceLocation dimension,
-            long tick,
-            Vec3 position,
-            Vec3 velocity
-    ) {}
+    private static final class Motion {
+
+        private boolean initialized;
+        private ResourceLocation dimension;
+        private long tick;
+
+        private double x;
+        private double y;
+        private double z;
+
+        private double velocityX;
+        private double velocityY;
+        private double velocityZ;
+
+        private void measure(
+                ServerPlayer player,
+                ResourceLocation currentDimension,
+                long currentTick
+        ) {
+            double currentX = player.getX();
+            double currentY = player.getY();
+            double currentZ = player.getZ();
+
+            double dx = currentX - x;
+            double dy = currentY - y;
+            double dz = currentZ - z;
+
+            if (initialized
+                    && currentDimension.equals(dimension)
+                    && currentTick > tick
+                    && dx * dx + dy * dy + dz * dz < 256.0) {
+
+                double scale = 1.0 / (currentTick - tick);
+
+                velocityX = dx * scale;
+                velocityY = dy * scale;
+                velocityZ = dz * scale;
+            } else {
+                Vec3 delta = player.getDeltaMovement();
+
+                velocityX = delta.x;
+                velocityY = delta.y;
+                velocityZ = delta.z;
+            }
+
+            initialized = true;
+            dimension = currentDimension;
+            tick = currentTick;
+
+            x = currentX;
+            y = currentY;
+            z = currentZ;
+        }
+
+        private Vec3 velocity() {
+            return new Vec3(velocityX, velocityY, velocityZ);
+        }
+    }
 
     private record PowerUse(
             ScadrialPlayerData data,
@@ -319,24 +370,22 @@ public final class ExternalAllomancyPhysics {
                 ScadrialAttachments.get(player);
 
         double strength =
-                AllomancyBurnManager.effectiveStrength(player);
+                AllomancyBurnManager.effectiveStrength(player, data);
 
-        boolean aluminium = usable(
-                player, data, AllomanticFuel.ALUMINIUM
-        );
-        boolean duralumin = !aluminium && usable(
-                player, data, AllomanticFuel.DURALUMIN
-        );
+        boolean aluminium =
+                data.isUsableAndBurning(AllomanticFuel.ALUMINIUM);
+        boolean duralumin = !aluminium
+                && data.isUsableAndBurning(AllomanticFuel.DURALUMIN);
 
         double radius = ExternalAllomancyMath.radius(
                 strength, duralumin
         );
 
         boolean push = action.push
-                && usable(player, data, AllomanticFuel.STEEL);
+                && data.isUsableAndBurning(AllomanticFuel.STEEL);
 
         boolean pull = action.pull
-                && usable(player, data, AllomanticFuel.IRON);
+                && data.isUsableAndBurning(AllomanticFuel.IRON);
 
         if ((!push && !pull)
                 || radius <= 0.0
@@ -367,17 +416,10 @@ public final class ExternalAllomancyPhysics {
             return MetalTarget.NONE;
         }
 
-        SyncMetalSourcesS2CPayload sources =
-                new SyncMetalSourcesS2CPayload(
-                        cached.dimension(),
-                        radius,
-                        cached.targets(),
-                        cached.blocks()
-                );
-
         MetalTarget selected = MetalTargetSelector.select(
                 player,
-                sources,
+                cached,
+                radius,
                 previous
         );
 
@@ -636,18 +678,6 @@ public final class ExternalAllomancyPhysics {
         );
     }
 
-    private static boolean usable(
-            ServerPlayer player,
-            ScadrialPlayerData data,
-            AllomanticFuel fuel
-    ) {
-        return data.isBurning(fuel)
-                && data.getAllomanticReserveSubunits(fuel) > 0L
-                && ScadrialPowerManager.canUseAllomanticFuel(
-                player, fuel
-        );
-    }
-
     private static Vec3 freeDirection(
             Entity entity,
             Vec3 direction
@@ -890,54 +920,19 @@ public final class ExternalAllomancyPhysics {
 
     private static void updateMotion(ServerPlayer player) {
         UUID id = player.getUUID();
-        long tick = player.serverLevel().getGameTime();
 
-        Motion previous = MOTION.get(id);
-
-        Vec3 measured = measureVelocity(
-                player,
-                previous,
-                tick
-        );
-
-        MOTION.put(
-                id,
-                new Motion(
+        MOTION.computeIfAbsent(id, ignored -> new Motion())
+                .measure(
+                        player,
                         dimensionOf(player),
-                        tick,
-                        player.position(),
-                        measured
-                )
-        );
+                        player.serverLevel().getGameTime()
+                );
 
         if (player.onGround()
                 || player.isInWater()
                 || !player.isAlive()) {
             FALL_PROTECTED.remove(id);
         }
-    }
-
-    private static Vec3 measureVelocity(
-            ServerPlayer player,
-            Motion previous,
-            long tick
-    ) {
-        if (previous == null
-                || !previous.dimension().equals(dimensionOf(player))
-                || tick <= previous.tick()) {
-            return player.getDeltaMovement();
-        }
-
-        Vec3 displacement = player.position()
-                .subtract(previous.position());
-
-        if (displacement.lengthSqr() >= 256.0) {
-            return player.getDeltaMovement();
-        }
-
-        return displacement.scale(
-                1.0 / (tick - previous.tick())
-        );
     }
 
     private static Vec3 velocity(Entity entity) {

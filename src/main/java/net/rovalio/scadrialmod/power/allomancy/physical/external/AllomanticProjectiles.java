@@ -21,6 +21,8 @@ import java.util.Set;
 @EventBusSubscriber(modid = ScadrialMod.MOD_ID)
 public final class AllomanticProjectiles {
 
+    private static final int FLIGHT_SYNC_INTERVAL = 4;
+
     private static final Set<AbstractArrow> TRACKED =
             new HashSet<>();
 
@@ -136,13 +138,13 @@ public final class AllomanticProjectiles {
             boolean changed = PENDING.remove(arrow);
             boolean embedded = embedded(arrow);
 
-            if (changed || embedded || arrow.tickCount % 2 == 0) {
+            if (changed
+                    || embedded
+                    || arrow.tickCount % FLIGHT_SYNC_INTERVAL == 0) {
                 PacketDistributor.sendToPlayersTrackingEntity(
                         arrow,
                         new EquipmentNetworking.Motion(
                                 arrow.getId(),
-                                arrow.getUUID(),
-                                arrow.level().dimension().location(),
                                 arrow.position(),
                                 arrow.getDeltaMovement(),
                                 embedded

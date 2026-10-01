@@ -13,10 +13,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class MetalSourceProperties {
 
@@ -28,11 +29,17 @@ public final class MetalSourceProperties {
     public static final String INVESTED_CHARGE_KEY =
             "scadrial_invested_charge";
 
+    private static final EquipmentSlot[] EQUIPMENT_SLOTS =
+            EquipmentSlot.values();
+
     private static final Map<ResourceLocation, Double> ITEM_MASSES =
-            new HashMap<>();
+            new ConcurrentHashMap<>();
 
     private static final Map<ResourceLocation, Double> ENTITY_MASSES =
-            new HashMap<>();
+            new ConcurrentHashMap<>();
+
+    private static final Map<Item, Double> RESOLVED_ITEM_MASSES =
+            new ConcurrentHashMap<>();
 
     static {
         registerVanillaItem("iron_block", 1_500.0);
@@ -60,7 +67,7 @@ public final class MetalSourceProperties {
 
         registerItemMass(ResourceLocation.fromNamespaceAndPath(
                         "welcome_to_scadrial",
-                        "gold_imperial.json"
+                        "gold_imperial"
                 ), 0.022
         );
 
@@ -89,6 +96,11 @@ public final class MetalSourceProperties {
     ) {
         requireMass(kg);
         ITEM_MASSES.put(id, kg);
+        RESOLVED_ITEM_MASSES.clear();
+    }
+
+    public static void clearResolvedMasses() {
+        RESOLVED_ITEM_MASSES.clear();
     }
 
     public static void registerEntityMass(
@@ -125,9 +137,14 @@ public final class MetalSourceProperties {
             return custom;
         }
 
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(
-                stack.getItem()
+        return RESOLVED_ITEM_MASSES.computeIfAbsent(
+                stack.getItem(),
+                MetalSourceProperties::resolveItemMass
         );
+    }
+
+    private static double resolveItemMass(Item item) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
 
         Double registered = ITEM_MASSES.get(id);
 
@@ -135,7 +152,7 @@ public final class MetalSourceProperties {
             return registered;
         }
 
-        if (stack.getItem() instanceof BlockItem blockItem) {
+        if (item instanceof BlockItem blockItem) {
             return blockMass(id, blockItem);
         }
 
@@ -284,7 +301,7 @@ public final class MetalSourceProperties {
     private static double equipmentMass(LivingEntity entity) {
         double total = 0.0;
 
-        for (EquipmentSlot slot : EquipmentSlot.values()) {
+        for (EquipmentSlot slot : EQUIPMENT_SLOTS) {
             ItemStack stack = entity.getItemBySlot(slot);
 
             if (stack.isEmpty()) {

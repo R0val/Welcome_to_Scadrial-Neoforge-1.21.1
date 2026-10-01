@@ -1,6 +1,7 @@
 package net.rovalio.scadrialmod.mixin.client;
 
-import net.minecraft.client.resources.sounds.Sound;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.client.sounds.ChannelAccess;
 import net.minecraft.client.sounds.SoundEngine;
@@ -14,7 +15,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -52,17 +52,16 @@ public abstract class SoundEngineMixin {
         );
     }
 
-    @Redirect(
+    @ModifyExpressionValue(
             method = "play",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/resources/sounds/Sound;getAttenuationDistance()I"
             )
     )
-    private int scadrial$hearingDistance(Sound sound) {
+    private int scadrial$hearingDistance(int distance) {
         return Math.round(
-                sound.getAttenuationDistance()
-                        * PhysicalInternalAllomancyClient.hearingRange()
+                distance * PhysicalInternalAllomancyClient.hearingRange()
         );
     }
 

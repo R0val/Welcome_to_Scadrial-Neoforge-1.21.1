@@ -20,7 +20,17 @@ import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
 import net.rovalio.scadrialmod.power.allomancy.physical.external.ExternalAllomancyPerception;
 import net.rovalio.scadrialmod.power.allomancy.physical.internal.PhysicalInternalAllomancyManager;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public final class ScadrialNetworking {
+
+    private static final Map<UUID, SyncAllomancyStateS2CPayload> LAST_STATE =
+            new HashMap<>();
+
+    private static final Map<UUID, SyncAllomanticBurnsS2CPayload> LAST_BURNS =
+            new HashMap<>();
 
     private ScadrialNetworking() {
     }
@@ -53,7 +63,7 @@ public final class ScadrialNetworking {
     private static void registerPayloads(
             RegisterPayloadHandlersEvent event
     ) {
-        PayloadRegistrar registrar = event.registrar("2");
+        PayloadRegistrar registrar = event.registrar("3");
 
         registrar.playToClient(
                 SyncAllomancyStateS2CPayload.TYPE,
@@ -114,6 +124,9 @@ public final class ScadrialNetworking {
     ) {
         if (event.getEntity() instanceof ServerPlayer player) {
             ExternalAllomancyPerception.forget(player);
+            PhysicalInternalAllomancyNetworking.forget(player);
+            LAST_STATE.remove(player.getUUID());
+            LAST_BURNS.remove(player.getUUID());
         }
     }
 
@@ -121,6 +134,9 @@ public final class ScadrialNetworking {
             ServerStoppedEvent event
     ) {
         ExternalAllomancyPerception.clear();
+        PhysicalInternalAllomancyNetworking.clear();
+        LAST_STATE.clear();
+        LAST_BURNS.clear();
     }
 
     private static void onPlayerTick(PlayerTickEvent.Post event) {
@@ -135,12 +151,20 @@ public final class ScadrialNetworking {
 
     public static void sync(ServerPlayer player) {
         PhysicalInternalAllomancyManager.refresh(player);
-        PhysicalInternalAllomancyNetworking.sync(player);
+        PhysicalInternalAllomancyNetworking.forceSync(player);
 
+        LAST_STATE.remove(player.getUUID());
+        LAST_BURNS.remove(player.getUUID());
+        syncAllomancy(player);
+
+        ExternalAllomancyPerception.sync(player);
+    }
+
+    public static void syncAllomancy(ServerPlayer player) {
         ScadrialPlayerData data = ScadrialAttachments.get(player);
+        UUID id = player.getUUID();
 
-        PacketDistributor.sendToPlayer(
-                player,
+        SyncAllomancyStateS2CPayload state =
                 new SyncAllomancyStateS2CPayload(
                         data.isPowerAssignmentComplete(),
                         data.getAllomanticProfile().getSerializedName(),
@@ -152,18 +176,21 @@ public final class ScadrialNetworking {
                                 ? data.getAllomancyStrength()
                                 : 0.0,
                         data.getAllomanticReservesSubunits()
-                )
-        );
+                );
 
-        PacketDistributor.sendToPlayer(
-                player,
+        if (!state.equals(LAST_STATE.put(id, state))) {
+            PacketDistributor.sendToPlayer(player, state);
+        }
+
+        SyncAllomanticBurnsS2CPayload burns =
                 new SyncAllomanticBurnsS2CPayload(
                         data.getBurningFuels().stream()
                                 .map(AllomanticFuel::getSerializedName)
                                 .toList()
-                )
-        );
+                );
 
-        ExternalAllomancyPerception.sync(player);
+        if (!burns.equals(LAST_BURNS.put(id, burns))) {
+            PacketDistributor.sendToPlayer(player, burns);
+        }
     }
 }

@@ -132,7 +132,7 @@ public final class ExternalAllomancyNetworking {
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("external_physics_1");
+        var registrar = event.registrar("external_physics_2");
 
         registrar.playToServer(
                 Input.TYPE,

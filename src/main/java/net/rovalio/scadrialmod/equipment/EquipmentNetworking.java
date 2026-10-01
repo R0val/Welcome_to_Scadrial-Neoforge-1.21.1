@@ -15,8 +15,6 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.rovalio.scadrialmod.ScadrialMod;
 import net.rovalio.scadrialmod.client.EquipmentClient;
 
-import java.util.UUID;
-
 @EventBusSubscriber(
         modid = ScadrialMod.MOD_ID,
         bus = EventBusSubscriber.Bus.MOD
@@ -78,8 +76,6 @@ public final class EquipmentNetworking {
 
     public record Motion(
             int id,
-            UUID uuid,
-            ResourceLocation dimension,
             Vec3 position,
             Vec3 velocity,
             boolean embedded
@@ -101,8 +97,6 @@ public final class EquipmentNetworking {
             public Motion decode(RegistryFriendlyByteBuf buffer) {
                 return new Motion(
                         buffer.readVarInt(),
-                        buffer.readUUID(),
-                        buffer.readResourceLocation(),
                         readVector(buffer),
                         readVector(buffer),
                         buffer.readBoolean()
@@ -115,8 +109,6 @@ public final class EquipmentNetworking {
                     Motion value
             ) {
                 buffer.writeVarInt(value.id());
-                buffer.writeUUID(value.uuid());
-                buffer.writeResourceLocation(value.dimension());
 
                 writeVector(buffer, value.position());
                 writeVector(buffer, value.velocity());
@@ -164,7 +156,7 @@ public final class EquipmentNetworking {
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("equipment_2");
+        var registrar = event.registrar("equipment_3");
 
         registrar.playToServer(
                 Action.TYPE,
