@@ -87,8 +87,19 @@ public final class ClientAllomancyState {
         }
 
         public long burnSubunitsPerTick(AllomanticFuel fuel) {
+            return Math.round(
+                    preciseBurnSubunitsPerTick(fuel)
+            );
+        }
+
+        public double preciseBurnSubunitsPerTick(AllomanticFuel fuel) {
             if (!isUsableAndBurning(fuel)) {
-                return 0L;
+                return 0.0;
+            }
+
+            if (fuel == AllomanticFuel.CADMIUM
+                    || fuel == AllomanticFuel.BENDALLOY) {
+                return ClientTemporalAllomancy.subunitsPerTick(fuel);
             }
 
             return AllomancyBurnManager.burnSubunitsPerTick(

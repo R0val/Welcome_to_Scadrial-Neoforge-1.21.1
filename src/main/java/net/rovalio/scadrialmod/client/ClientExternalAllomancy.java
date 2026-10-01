@@ -61,17 +61,33 @@ public final class ClientExternalAllomancy {
         boolean active = acceptsInput(minecraft);
 
         updateKeyArming(active);
-        updatePreview(minecraft, active);
+
+        boolean temporalInput = ClientTemporalAllomancy.update(
+                active,
+                pushArmed && pushKey.isDown(),
+                pullArmed && pullKey.isDown()
+        );
+
+        updatePreview(
+                minecraft,
+                active && !temporalInput
+        );
 
         boolean push = active
+                && !temporalInput
                 && pushArmed
                 && pushKey.isDown()
-                && ClientAllomancyBurnState.isBurning(AllomanticFuel.STEEL);
+                && ClientAllomancyBurnState.isBurning(
+                AllomanticFuel.STEEL
+        );
 
         boolean pull = active
+                && !temporalInput
                 && pullArmed
                 && pullKey.isDown()
-                && ClientAllomancyBurnState.isBurning(AllomanticFuel.IRON);
+                && ClientAllomancyBurnState.isBurning(
+                AllomanticFuel.IRON
+        );
 
         sendInput(minecraft, push, pull);
 
@@ -238,6 +254,7 @@ public final class ClientExternalAllomancy {
 
     private static void clear() {
         AllomancyLoopSound.clear();
+        ClientTemporalAllomancy.clear();
 
         preview = MetalTarget.NONE;
         confirmed = null;
@@ -247,6 +264,7 @@ public final class ClientExternalAllomancy {
 
         sentPush = false;
         sentPull = false;
+
         pushArmed = false;
         pullArmed = false;
 

@@ -368,7 +368,7 @@ public final class AllomancyWheelScreen extends Screen {
                     snapshot.getReserveSubunits(fuel)
             );
 
-            displayedReserves.put( ///esto puede que no tuviera que cambierlo
+            displayedReserves.put(
                     fuel,
                     Math.max(
                             0L,
@@ -520,11 +520,15 @@ public final class AllomancyWheelScreen extends Screen {
                     false
             );
 
-            String details =
-                    ClientAllomancyState.current().burnSubunitsPerTick(fuel)
-                            + "/t  "
-                            + displayedReserve(fuel)
-                            + " u";
+            String details = String.format(
+                    Locale.ROOT,
+                    "%.2f",
+                    ClientAllomancyState.current()
+                            .preciseBurnSubunitsPerTick(fuel)
+            )
+                    + "/t  "
+                    + displayedReserve(fuel)
+                    + " u";
 
             graphics.drawString(
                     font,

@@ -9,8 +9,7 @@ import net.rovalio.scadrialmod.power.allomancy.physical.external.AllomanticProje
 
 public final class TemporalProjectiles {
 
-    private TemporalProjectiles() {
-    }
+    private TemporalProjectiles() {}
 
     public static void beforeTick(Entity entity) {
         if (entity.level().isClientSide()
@@ -46,7 +45,7 @@ public final class TemporalProjectiles {
             );
         }
 
-        if (!Double.isNaN(crossing)) {
+        if (!Double.isFinite(crossing)) {
             return;
         }
 
@@ -88,10 +87,11 @@ public final class TemporalProjectiles {
         double rotation = random.nextDouble() * Math.PI * 2.0;
 
         Vec3 direction = forward.scale(Math.cos(angle))
-                .add(side.scale(Math.sin(angle) + Math.cos(rotation)))
-                .add(side.scale(Math.sin(angle) + Math.sin(rotation)));
+                .add(side.scale(Math.sin(angle) * Math.cos(rotation)))
+                .add(up.scale(Math.sin(angle) * Math.sin(rotation)));
 
         entity.setDeltaMovement(direction.scale(motion.length()));
+
         entity.hasImpulse = true;
         entity.hurtMarked = true;
 

@@ -24,6 +24,7 @@ import net.rovalio.scadrialmod.player.ScadrialPlayerData;
 import net.rovalio.scadrialmod.power.allomancy.AllomancyBurnManager;
 import net.rovalio.scadrialmod.power.allomancy.AllomanticFuel;
 import net.rovalio.scadrialmod.power.allomancy.physical.internal.PhysicalInternalAllomancyManager;
+import net.rovalio.scadrialmod.power.allomancy.temporal.external.TemporalAllomancyManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -244,7 +245,8 @@ public final class ExternalAllomancyPhysics {
             return;
         }
 
-        if (!validInput(player, action)) {
+        if (TemporalAllomancyManager.charging(player)
+                || !validInput(player, action)) {
             stop(player, action);
             return;
         }

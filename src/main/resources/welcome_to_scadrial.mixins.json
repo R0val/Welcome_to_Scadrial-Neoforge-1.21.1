@@ -5,11 +5,15 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LevelChunkMixin",
-    "ServerLevelSoundMixin"
+    "ServerLevelSoundMixin",
+    "TemporalEntityClockMixin",
+    "TemporalLevelMixin",
+    "TemporalServerLevelMixin"
   ],
   "client": [
     "client.LightTextureMixin",
-    "client.SoundEngineMixin"
+    "client.SoundEngineMixin",
+    "client.TemporalClientLevelMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -21,10 +21,12 @@ public final class AllomancyBurnManager {
 
     public static long passiveSubunitsPerTick(AllomanticFuel fuel) {
         return switch (fuel) {
+            case CADMIUM, BENDALLOY -> 0L;
+
             case IRON, STEEL, TIN, PEWTER,
                  ZINC, BRASS, COPPER, BRONZE,
                  CHROMIUM, NICROSIL, ALUMINIUM, DURALUMIN,
-                 CADMIUM, BENDALLOY, GOLD, ELECTRUM,
+                 GOLD, ELECTRUM,
                  ATIUM_ELECTRUM, MALATIUM -> 1L;
         };
     }

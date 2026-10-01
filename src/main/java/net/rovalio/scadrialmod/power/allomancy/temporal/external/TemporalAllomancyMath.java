@@ -15,6 +15,14 @@ public final class TemporalAllomancyMath {
         return Math.max(min, Math.min(max, value));
     }
 
+    private static double logStrength(double strength) {
+        double safe = Double.isFinite(strength)
+                ? strength
+                : 1.0;
+
+        return Math.log(clamp(safe, 1.0, 16.0)) / Math.log(2.0);
+    }
+
     public static double maxRadius(double strength, boolean boosted) {
         double logarithm = logStrength(strength);
 
@@ -29,12 +37,6 @@ public final class TemporalAllomancyMath {
         return boosted
                 ? 4.0 * logarithm + 8.0
                 : 2.5 * logarithm + 6.0;
-    }
-
-    private static double logStrength(double strength) {
-        double safe = Double.isFinite(strength) ? strength : 1.0;
-
-        return Math.log(clamp(safe, 1.0, 16.0)) / Math.log(2.0);
     }
 
     public static double charge(long ticks) {
@@ -81,13 +83,6 @@ public final class TemporalAllomancyMath {
         return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
 
-    public static double rate(int exponent){
-        return Math.scalb(
-                1.0,
-                Math.max(-2, Math.min(2, exponent))
-        );
-    }
-
     public static int exponent(
             double distanceSquared,
             double radius,
@@ -106,6 +101,13 @@ public final class TemporalAllomancyMath {
                 : -interior * (boosted ? 2 : 1);
     }
 
+    public static double rate(int exponent){
+        return Math.scalb(
+                1.0,
+                Math.max(-2, Math.min(2, exponent))
+        );
+    }
+
     public static int scheduledSteps(
             double rate,
             long tick,
@@ -117,7 +119,9 @@ public final class TemporalAllomancyMath {
 
         int period = (int) Math.round(1.0 / rate);
 
-        return Math.floorMod(tick + phase, period) == 0 ? 1 : 0;
+        return Math.floorMod(tick + phase, period) == 0
+                ? 1
+                : 0;
     }
 
     public static double firstCrossing(

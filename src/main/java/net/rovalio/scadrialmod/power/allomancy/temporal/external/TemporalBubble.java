@@ -60,6 +60,4 @@ public record TemporalBubble(
                 boosted
         );
     }
-
-
 }

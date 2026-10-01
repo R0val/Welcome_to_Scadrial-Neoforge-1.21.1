@@ -22,7 +22,9 @@ public final class TemporalEntityTicks {
             }
         }
 
-        if (TemporalField.of(entity.level()).bubbles().isEmpty()){
+        TemporalField field = TemporalField.of(entity.level());
+
+        if (field.bubbles().isEmpty()) {
             ((Clock) entity).scadrial$temporalSteps(1.0);
             return false;
         }
@@ -42,7 +44,7 @@ public final class TemporalEntityTicks {
             entity.setOldPosAndRot();
         }
 
-        for (int i = 0; i < steps && !entity.isRemoved(); ++i){
+        for (int i = 0; i < steps && !entity.isRemoved(); i++){
             TemporalProjectiles.beforeTick(entity);
             vanillaTick.run();
         }
