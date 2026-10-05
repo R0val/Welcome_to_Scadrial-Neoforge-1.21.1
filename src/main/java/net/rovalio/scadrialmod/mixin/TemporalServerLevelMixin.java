@@ -68,10 +68,27 @@ public abstract class TemporalServerLevelMixin {
             BlockPos pos,
             RandomSource random
     ) {
-        int steps = scadrial$randomSteps(level, pos, random);
+        TemporalField field = TemporalField.of(level);
+
+        if (!field.snapshot().mightAffect(pos)) {
+            state.randomTick(level, pos, random);
+            return;
+        }
+
+        int steps = scadrial$randomSteps(
+                field,
+                pos,
+                random
+        );
+
+        if (steps == 1) {
+            state.randomTick(level, pos, random);
+            return;
+        }
 
         for (int i = 0; i < steps; i++) {
-            BlockState current = level.getBlockState(pos);
+            BlockState current =
+                    level.getBlockState(pos);
 
             if (!current.is(state.getBlock())
                     || !current.isRandomlyTicking()) {
@@ -82,13 +99,6 @@ public abstract class TemporalServerLevelMixin {
         }
     }
 
-    @Redirect(
-            method = "tickChunk",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/level/material/FluidState;randomTick(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V"
-            )
-    )
     private void scadrial$randomFluid(
             FluidState state,
             Level world,
@@ -96,11 +106,27 @@ public abstract class TemporalServerLevelMixin {
             RandomSource random
     ) {
         ServerLevel level = (ServerLevel) world;
+        TemporalField field = TemporalField.of(level);
 
-        int steps = scadrial$randomSteps(level, pos, random);
+        if (!field.snapshot().mightAffect(pos)) {
+            state.randomTick(world, pos, random);
+            return;
+        }
+
+        int steps = scadrial$randomSteps(
+                field,
+                pos,
+                random
+        );
+
+        if (steps == 1) {
+            state.randomTick(world, pos, random);
+            return;
+        }
 
         for (int i = 0; i < steps; i++) {
-            FluidState current = level.getFluidState(pos);
+            FluidState current =
+                    level.getFluidState(pos);
 
             if (!current.is(state.getType())
                     || !current.isRandomlyTicking()) {
@@ -113,11 +139,11 @@ public abstract class TemporalServerLevelMixin {
 
     @Unique
     private static int scadrial$randomSteps(
-            ServerLevel level,
+            TemporalField field,
             BlockPos pos,
             RandomSource random
     ) {
-        double rate = TemporalField.of(level).rate(
+        double rate = field.rate(
                 Vec3.atCenterOf(pos)
         );
 
@@ -125,6 +151,8 @@ public abstract class TemporalServerLevelMixin {
             return (int) rate;
         }
 
-        return random.nextDouble() < rate ? 1 : 0;
+        return random.nextDouble() < rate
+                ? 1
+                : 0;
     }
 }

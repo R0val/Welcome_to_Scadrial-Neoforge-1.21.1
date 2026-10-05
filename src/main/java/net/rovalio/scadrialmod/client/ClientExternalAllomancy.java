@@ -250,6 +250,7 @@ public final class ClientExternalAllomancy {
             ClientPlayerNetworkEvent.LoggingOut event
     ) {
         clear();
+        ClientTemporalAllomancy.forgetWorld();
     }
 
     private static void clear() {

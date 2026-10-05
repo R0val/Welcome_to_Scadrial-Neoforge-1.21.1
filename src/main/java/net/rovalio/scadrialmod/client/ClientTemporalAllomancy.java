@@ -1,7 +1,9 @@
 package net.rovalio.scadrialmod.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.rovalio.scadrialmod.network.TemporalAllomancyNetworking;
@@ -11,7 +13,33 @@ import net.rovalio.scadrialmod.power.allomancy.temporal.external.TemporalBubble;
 import net.rovalio.scadrialmod.power.allomancy.temporal.external.TemporalField;
 import org.joml.Vector3f;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public final class ClientTemporalAllomancy {
+
+    private static final int PARTICLE_INTERVAL_TICKS = 3;
+    private static final int PARTICLES_PER_PASS = 376;
+
+    private static final int MAX_PREVIEW_PARTICLES = 152;
+    private static final int MAX_EDGE_PARTICLES = 224;
+
+    private static final int BASE_PREVIEW_PARTICLES = 48;
+    private static final double PREVIEW_PARTICLES_PER_RADIUS_SQUARED = 0.4;
+
+    private static final int BASE_EDGE_PARTICLES = 32;
+    private static final double EDGE_PARTICLES_PER_RADIUS_SQUARED = 0.75;
+
+    private static final Map<
+            ResourceLocation,
+            TemporalAllomancyNetworking.State
+            > STATES_BY_DIMENSION = new HashMap<>();
+
+    private static ClientLevel appliedLevel;
+    private static TemporalAllomancyNetworking.State appliedState;
+
+    private static int nextBubbleIndex;
 
     private static final DustParticleOptions CADMIUM =
             new DustParticleOptions(
@@ -45,6 +73,7 @@ public final class ClientTemporalAllomancy {
         Minecraft minecraft = Minecraft.getInstance();
 
         if (minecraft.player == null || minecraft.level == null) {
+            applyCurrentState(minecraft.level);
             return false;
         }
 
@@ -135,11 +164,28 @@ public final class ClientTemporalAllomancy {
     public static void receive(
             TemporalAllomancyNetworking.State state
     ) {
-        var level = Minecraft.getInstance().level;
+        STATES_BY_DIMENSION.put(state.dimension(), state);
 
-        if (level != null
-                && level.dimension().location().equals(state.dimension())) {
+        ClientLevel level = Minecraft.getInstance().level;
+
+        if (level != null) {
+            applyCurrentState(level);
+        }
+    }
+
+    private static void applyCurrentState(ClientLevel level) {
+        TemporalAllomancyNetworking.State state =
+                STATES_BY_DIMENSION.get(
+                        level.dimension().location()
+                );
+
+        if (state != null
+                && (appliedLevel != level
+                || appliedState != state)) {
             TemporalField.of(level).replace(state.bubbles());
+
+            appliedLevel = level;
+            appliedState = state;
         }
     }
 
@@ -170,9 +216,12 @@ public final class ClientTemporalAllomancy {
     private static void particles() {
         Minecraft minecraft = Minecraft.getInstance();
 
-        if (minecraft.level.getGameTime() % 3 != 0) {
+        if (minecraft.level.getGameTime()
+                % PARTICLE_INTERVAL_TICKS != 0) {
             return;
         }
+
+        int remaining = PARTICLES_PER_PASS;
 
         if (charging) {
             var data = ClientAllomancyState.current();
@@ -183,16 +232,28 @@ public final class ClientTemporalAllomancy {
                     TemporalAllomancyMath.charge(heldTicks)
             );
 
-            Vec3 center = minecraft.player.position().add(0, 1.25, 0);
+            Vec3 center = minecraft.player.position()
+                    .add(0.0, 1.25, 0.0);
 
-            int count = (int) (64 * radius);
+            int count = Math.min(
+                    MAX_PREVIEW_PARTICLES,
+                    BASE_PREVIEW_PARTICLES
+                            + (int) Math.ceil(
+                            PREVIEW_PARTICLES_PER_RADIUS_SQUARED
+                                    * radius
+                                    * radius
+                    )
+            );
+
+            remaining -= count;
+
             for (int i = 0; i < count; i++) {
-                double angle = Math.PI * 2.0 * i / 48.0;
+                double angle = Math.PI * 2.0 * i / count;
 
                 particle(
                         center.add(
                                 radius * Math.cos(angle),
-                                0,
+                                0.0,
                                 radius * Math.sin(angle)
                         ),
                         bendalloy
@@ -200,19 +261,62 @@ public final class ClientTemporalAllomancy {
             }
         }
 
-        for (TemporalBubble bubble
-                : TemporalField.of(minecraft.level).bubbles()) {
-            if (minecraft.player.distanceToSqr(bubble.center()) > 96.0 * 96.0) {
+        List<TemporalBubble> bubbles =
+                TemporalField.of(minecraft.level).bubbles();
+
+        if (bubbles.isEmpty()) {
+            return;
+        }
+
+        int first = nextBubbleIndex % bubbles.size();
+
+        nextBubbleIndex =
+                (first + 1) % bubbles.size();
+
+        for (int index = 0;
+             index < bubbles.size() && remaining > 0;
+             index++) {
+
+            TemporalBubble bubble =
+                    bubbles.get(
+                            (first + index) % bubbles.size()
+                    );
+
+            double visibleDistance =
+                    96.0 + bubble.radius();
+
+            if (minecraft.player.distanceToSqr(
+                    bubble.center()
+            ) > visibleDistance * visibleDistance) {
                 continue;
             }
 
-            for (int i = 0; i < 16; i++) {
-                double y = minecraft.level.random.nextDouble() * 2.0 - 1.0;
+            int count = Math.min(
+                    remaining,
+                    Math.min(
+                            MAX_EDGE_PARTICLES,
+                            BASE_EDGE_PARTICLES
+                                    + (int) Math.ceil(
+                                    EDGE_PARTICLES_PER_RADIUS_SQUARED
+                                            * bubble.radius()
+                                            * bubble.radius()
+                            )
+                    )
+            );
+
+            remaining -= count;
+
+            for (int i = 0; i < count; i++) {
+                double y =
+                        minecraft.level.random.nextDouble()
+                                * 2.0 - 1.0;
 
                 double angle =
-                        minecraft.level.random.nextDouble() * Math.PI * 2.0;
+                        minecraft.level.random.nextDouble()
+                                * Math.PI * 2.0;
 
-                double horizontal = Math.sqrt(1.0 - y * y);
+                double horizontal =
+                        Math.sqrt(1.0 - y * y);
 
                 Vec3 normal = new Vec3(
                         horizontal * Math.cos(angle),
@@ -254,5 +358,15 @@ public final class ClientTemporalAllomancy {
 
         locked = false;
         heldTicks = 0;
+        nextBubbleIndex = 0;
+    }
+
+    public static void forgetWorld() {
+        clear();
+
+        STATES_BY_DIMENSION.clear();
+
+        appliedLevel = null;
+        appliedState = null;
     }
 }

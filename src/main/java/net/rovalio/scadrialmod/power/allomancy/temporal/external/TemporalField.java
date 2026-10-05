@@ -1,5 +1,6 @@
 package net.rovalio.scadrialmod.power.allomancy.temporal.external;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
@@ -68,6 +69,19 @@ public final class TemporalField {
                     bubbles,
                     index,
                     true
+            );
+        }
+
+        public boolean mightAffect(BlockPos position) {
+            if (bubbles.isEmpty()) {
+                return false;
+            }
+
+            return !indexed || chunks.containsKey(
+                    ChunkPos.asLong(
+                            position.getX() >> 4,
+                            position.getZ() >> 4
+                    )
             );
         }
 

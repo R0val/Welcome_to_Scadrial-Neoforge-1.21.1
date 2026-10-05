@@ -166,7 +166,9 @@ public final class AllomancyBurnManager {
                     duraluminActive
             );
 
-            data.consumeAllomanticReserveSubunits(fuel, cost);
+            if (cost > 0L) {
+                data.consumeAllomanticReserveSubunits(fuel, cost);
+            }
 
             if (data.getAllomanticReserveSubunits(fuel) == 0L) {
                 data.setBurning(fuel, false);

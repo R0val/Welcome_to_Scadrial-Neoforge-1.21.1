@@ -196,7 +196,7 @@ public final class TemporalAllomancyManager {
 
         state.active.put(owner, active);
 
-        publish(level, state, true);
+        publish(level, state);
     }
 
     private static TemporalBubble geometry(
@@ -255,7 +255,7 @@ public final class TemporalAllomancyManager {
             });
 
             updateBubbles(level, state);
-            publish(level, state, now % 5 == 0);
+            publish(level, state);
         }
 
         for (ServerPlayer player : level.players()) {
@@ -351,29 +351,46 @@ public final class TemporalAllomancyManager {
 
     private static void publish(
             ServerLevel level,
-            WorldState state,
-            boolean heartbeat
+            WorldState state
     ) {
-        List<TemporalBubble> bubbles = state.active.values()
-                .stream()
-                .map(active -> active.bubble)
-                .toList();
-
         TemporalField field = TemporalField.of(level);
 
-        boolean changed = !field.bubbles().equals(bubbles);
+        if (state.active.isEmpty()
+                && field.bubbles().isEmpty()) {
+            return;
+        }
+
+        List<TemporalBubble> bubbles =
+                state.active.values()
+                        .stream()
+                        .map(active -> active.bubble)
+                        .toList();
+
+        if (field.bubbles().equals(bubbles)) {
+            return;
+        }
 
         TemporalFieldUpdates.replace(level, bubbles);
 
-        if (changed || heartbeat) {
-            PacketDistributor.sendToPlayersInDimension(
-                    level,
-                    new TemporalAllomancyNetworking.State(
-                            level.dimension().location(),
-                            bubbles
-                    )
-            );
-        }
+        PacketDistributor.sendToPlayersInDimension(
+                level,
+                new TemporalAllomancyNetworking.State(
+                        level.dimension().location(),
+                        bubbles
+                )
+        );
+    }
+
+    private static void syncTo(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+
+        PacketDistributor.sendToPlayer(
+                player,
+                new TemporalAllomancyNetworking.State(
+                        level.dimension().location(),
+                        TemporalField.of(level).bubbles()
+                )
+        );
     }
 
     private static void forget(ServerPlayer player) {
@@ -384,11 +401,20 @@ public final class TemporalAllomancyManager {
             state.remainders.remove(player.getUUID());
 
             if (state.active.remove(player.getUUID()) != null) {
-                publish(entry.getKey(), state, true);
+                publish(entry.getKey(), state);
             }
         }
 
         TemporalPlayerEffects.update(player, 1.0);
+    }
+
+    @SubscribeEvent
+    public static void login(
+            PlayerEvent.PlayerLoggedInEvent event
+    ) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            syncTo(player);
+        }
     }
 
     @SubscribeEvent
@@ -406,6 +432,7 @@ public final class TemporalAllomancyManager {
     ) {
         if (event.getEntity() instanceof ServerPlayer player) {
             forget(player);
+            syncTo(player);
         }
     }
 
@@ -415,6 +442,7 @@ public final class TemporalAllomancyManager {
     ) {
         if (event.getEntity() instanceof ServerPlayer player) {
             forget(player);
+            syncTo(player);
         }
     }
 

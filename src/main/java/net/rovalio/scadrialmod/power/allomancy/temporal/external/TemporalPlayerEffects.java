@@ -41,6 +41,10 @@ public final class TemporalPlayerEffects {
             return;
         }
 
+        if (previous == null && amount == 0.0) {
+            return;
+        }
+
         instance.removeModifier(MODIFIER);
 
         if (amount != 0.0){

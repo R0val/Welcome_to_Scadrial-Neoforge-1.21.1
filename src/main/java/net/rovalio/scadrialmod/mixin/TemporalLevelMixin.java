@@ -33,11 +33,22 @@ public abstract class TemporalLevelMixin
     private void scadrial$tickBlockEntity(
             TickingBlockEntity ticker
     ) {
+        if (!scadrial$temporalField.snapshot()
+                .mightAffect(ticker.getPos())) {
+            ticker.tick();
+            return;
+        }
+
         Level level = (Level) (Object) this;
 
         double rate = scadrial$temporalField.rate(
                 Vec3.atCenterOf(ticker.getPos())
         );
+
+        if (rate == 1.0) {
+            ticker.tick();
+            return;
+        }
 
         int steps = TemporalAllomancyMath.scheduledSteps(
                 rate,
@@ -45,7 +56,9 @@ public abstract class TemporalLevelMixin
                 ticker.getPos().hashCode()
         );
 
-        for (int i = 0; i < steps && !ticker.isRemoved(); i++) {
+        for (int i = 0;
+             i < steps && !ticker.isRemoved();
+             i++) {
             ticker.tick();
         }
     }
